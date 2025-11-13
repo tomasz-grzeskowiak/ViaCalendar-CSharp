@@ -3,6 +3,9 @@
 public class Event
 {
     public string Name { get; private set; }
+    public string Tag {get; private set;}
+    public bool Recursive {get; private set;}
+    
     public int Id { get; set; } = 0;
 
     // Builder inner class
@@ -10,6 +13,8 @@ public class Event
     {
         private string _name = "Default Name";
         private int _id = 0;
+        private string _tag = "Default Tag";
+        private bool _recursive = true;
         
 
         public Builder SetName(string name)
@@ -28,12 +33,28 @@ public class Event
             return this;
         }
 
+        public Builder SetRecursive(bool recursive)
+        {
+            _recursive = recursive;
+            return this;
+        }
+
+        public Builder SetTag(string tag)
+        {
+            if (string.IsNullOrEmpty(tag))
+                throw new ArgumentException("Tag cannot be null or empty");
+            _tag = tag;
+            return this;
+        }
+
         public Event Build()
         {
             return new Event
             {
                 Name = _name,
-                Id = _id
+                Id = _id,
+                Tag = _tag,
+                Recursive = _recursive
             };
         }
     }

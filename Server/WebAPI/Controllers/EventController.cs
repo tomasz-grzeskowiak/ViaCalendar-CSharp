@@ -22,7 +22,7 @@ public class EventController : ControllerBase
     {
         var eventsList = _eventService.GetManyAsync();
         var eventsDto = eventsList
-            .Select(e => new EventDto( e.Name))
+            .Select(e => new EventDto( e.Name, e.Tag, e.Recursive))
             .ToList();
 
         return Ok(eventsDto);
@@ -35,10 +35,12 @@ public class EventController : ControllerBase
         var eventEntity = new Event.Builder()
             .SetId(dto.Id)
             .SetName(dto.Name)
+            .SetRecursive(dto.Recursive)
+            .SetTag(dto.Tag)
             .Build();
 
         await _eventService.CreateAsync(eventEntity);
-        return CreatedAtAction(nameof(CreateEvent), new { nameof=dto.Name }, dto);
+        return CreatedAtAction(nameof(CreateEvent), new { nameof=dto.Name, dto.Recursive, dto.Tag }, dto);
     }
 
     // PUT /eventEntity
@@ -52,6 +54,8 @@ public class EventController : ControllerBase
         var eventEntity = new Event.Builder()
             .SetId(existing.Id)
             .SetName(dto.Name)
+            .SetRecursive(dto.Recursive)
+            .SetTag(dto.Tag)
             .Build();
 
         await _eventService.UpdateAsync(eventEntity);

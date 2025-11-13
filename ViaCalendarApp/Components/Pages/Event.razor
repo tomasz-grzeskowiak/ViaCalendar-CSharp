@@ -16,7 +16,7 @@
         @foreach (var ev in events)
         {
             <li class="list-group-item d-flex justify-content-between align-items-center">
-                <span>@ev.Name )</span>
+                <span>@ev.Name @ev.Tag</span>
                 <span>
                     <button class="btn btn-sm btn-warning me-1" @onclick="() => StartEdit(ev)">Edit</button>
                 </span>
@@ -35,9 +35,14 @@
     <label>Event Name:</label>
     <input class="form-control" @bind="formEventName" />
 </div>
+<div class="mb-3">
+    <label>Tag:</label>
+    <input class="form-control" @bind="formEventTag"/>
+</div>
 
 <button class="btn btn-success me-1" @onclick="SaveEvent">Save</button>
 <button class="btn btn-secondary" @onclick="CancelEdit">Cancel</button>
+
 
 @code {
     private List<EventDto>? events;
@@ -46,6 +51,8 @@
     private EventDto? editingEvent = null;
     private string formEventId = "";
     private string formEventName = "";
+    private bool formEventRecursive = true;
+    private string formEventTag = "";
 
     private async Task LoadEvents()
     {
@@ -75,20 +82,20 @@
 
     private async Task SaveEvent()
     {
-        if (string.IsNullOrWhiteSpace(formEventId) || string.IsNullOrWhiteSpace(formEventName))
+        if (string.IsNullOrWhiteSpace(formEventId) || string.IsNullOrWhiteSpace(formEventName) || string.IsNullOrEmpty(formEventTag))
         {
-            statusMessage = "Event ID and Event Name are required.";
+            statusMessage = "Event ID and Event Name  or TAG are required.";
             return;
         }
 
         try
         {
-            var dto = new EventDto( formEventName);
+            var dto = new EventDto( formEventName, formEventTag, formEventRecursive );
 
             if (editingEvent == null)
             {
-                await EventService.CreateAsync(new CreateEventDto(0,dto.Name));
-                statusMessage = $"Event '{dto.Name}' created.";
+                await EventService.CreateAsync(new CreateEventDto(0,dto.Name, dto.Tag, dto.Recursive));
+                statusMessage = $"Event '{dto.Name}'  '{dto.Tag}' '{dto.Recursive}' created.";
             }
 
             await LoadEvents();

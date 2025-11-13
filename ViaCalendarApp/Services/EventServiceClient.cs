@@ -26,7 +26,7 @@ public class EventServiceClient
         response.EnsureSuccessStatusCode();
     }
 
-    // Update a event
+    // Update an event
     public async Task UpdateAsync(CreateEventDto eventDto)
     {
         var response = await _http.PutAsJsonAsync("event", eventDto);

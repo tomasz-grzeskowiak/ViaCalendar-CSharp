@@ -2,7 +2,7 @@
 
 namespace PersistenceContracts;
 
-public interface ICalendarPersistenceHandler
+public interface  ICalendarPersistenceHandler
 {
     Task<object> HandleAsync(Request request);
 }

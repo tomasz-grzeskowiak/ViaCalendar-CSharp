@@ -15,6 +15,8 @@ public class EventServiceProto : IEventRepository
         var proto = new EventProto()
         {
             Name = payload.Name,
+            Recursive = payload.Recursive,
+            Tag = payload.Tag,
         };
         var request = MakeRequestProto(ActionTypeProto.ActionCreate, proto);
 
@@ -24,6 +26,8 @@ public class EventServiceProto : IEventRepository
 
         return new Event.Builder()
             .SetName(created.Name)
+           // .SetRecursive(created.Recursive)
+            .SetTag(created.Tag)
             .Build();
     }
 
@@ -33,6 +37,8 @@ public class EventServiceProto : IEventRepository
         {
             Id = payload.Id,
             Name = payload.Name,
+            Recursive = payload.Recursive,
+            Tag = payload.Tag,
         };
         var update = MakeRequestProto(ActionTypeProto.ActionUpdate, proto);
         await _handler.SendRequestAsync(update);
@@ -61,6 +67,8 @@ public class EventServiceProto : IEventRepository
         return new Event.Builder()
             .SetId(eventProto.Id)
             .SetName(eventProto.Name)
+            //.SetRecursive(eventProto.Recursive)
+            .SetTag(eventProto.Tag)
             .Build();
     }
 
@@ -87,6 +95,8 @@ public class EventServiceProto : IEventRepository
                 events.Add(new Event.Builder()
                     .SetId(eventProto.Id)
                     .SetName(eventProto.Name)
+                    //.SetRecursive(eventProto.Recursive)
+                    .SetTag(eventProto.Tag)
                     .Build());
             }
             return events.AsQueryable();
