@@ -38,7 +38,6 @@ message EventProto {
   string name = 2;
   string tag = 3;
   bool recursive = 4;
-  string type_of_recursive = 5;
 }
 service CalendarProtoService {
   rpc SendRequest (RequestProto) returns (ResponseProto);

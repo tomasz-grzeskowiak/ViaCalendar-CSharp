@@ -22,7 +22,7 @@ public class EventController : ControllerBase
     {
         var eventsList = _eventService.GetManyAsync();
         var eventsDto = eventsList
-            .Select(e => new EventDto( e.Name, e.Tag, e.Recursive))
+            .Select(e => new EventDto(e.Id,e.Name, e.Tag, e.Recursive))
             .ToList();
 
         return Ok(eventsDto);
@@ -47,18 +47,29 @@ public class EventController : ControllerBase
     [HttpPut]
     public async Task<ActionResult> UpdateEvent([FromBody] CreateEventDto dto)
     {
-        var existing = await _eventService.GetSingleAsync(dto.Id);
-        if (existing == null)
-            return NotFound("Event not found");
-
         var eventEntity = new Event.Builder()
-            .SetId(existing.Id)
+            .SetId(dto.Id)
             .SetName(dto.Name)
             .SetRecursive(dto.Recursive)
             .SetTag(dto.Tag)
             .Build();
 
         await _eventService.UpdateAsync(eventEntity);
+        return NoContent();
+    }
+    // GET /event/{id}
+    [HttpGet("{id}")]
+    public async Task<ActionResult<CreateEventDto>> GetSingleEventAsync(int id)
+    {
+        var _event = await _eventService.GetSingleAsync(id);
+
+        return Ok(new CreateEventDto(_event.Id, _event.Name, _event.Tag, _event.Recursive));
+    }
+    // DELETE /event/{id}
+    [HttpDelete("{id}")]
+    public async Task<ActionResult> DeleteCompanyAsync(int id)
+    {
+        await _eventService.DeleteAsync(id);
         return NoContent();
     }
 }

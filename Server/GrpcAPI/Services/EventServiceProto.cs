@@ -8,7 +8,12 @@ namespace GrpcAPI.Services;
 
 public class EventServiceProto : IEventRepository
 {
-    private readonly CalendarMainGrpcHandler _handler = CalendarMainGrpcHandler.Instance;
+    private readonly CalendarMainGrpcHandler _handler;
+
+    public EventServiceProto(CalendarMainGrpcHandler handler)
+    {
+        _handler = handler;
+    }
 
     public async Task<Event> CreateAsync(Event payload)
     {

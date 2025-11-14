@@ -1,5 +1,6 @@
 ﻿using APIContracts.DTOs;
 using APIContracts.ENUMs;
+using Microsoft.Extensions.DependencyInjection;
 using PersistenceContracts;
 
 namespace Services.Event;
@@ -8,7 +9,7 @@ public class EventService : IEventService
 {
     private readonly ICalendarPersistenceHandler _handler;
 
-    public EventService(ICalendarPersistenceHandler handler)
+    public EventService([FromKeyedServices("event")] ICalendarPersistenceHandler handler)
     {
         _handler = handler;
     }
@@ -22,27 +23,27 @@ public class EventService : IEventService
     public async Task UpdateAsync(Event payload)
     {
         //Logic here
-        var request = MakeEventRequest(ActionType.ActionCreate, payload);
+        var request = MakeEventRequest(ActionType.ActionUpdate, payload);
         await _handler.HandleAsync(request);
     }
 
     public async Task DeleteAsync(int id)
     {
         //Logic here
-        var request = MakeEventRequest(ActionType.ActionCreate,
-    new Event.Builder()
-            .SetId(id)
-            .Build());
-         await _handler.HandleAsync(request);
+        var request = MakeEventRequest(ActionType.ActionDelete,
+            new Event.Builder()
+                .SetId(id)
+                .Build());
+        await _handler.HandleAsync(request);
     }
 
     public async Task<Event> GetSingleAsync(int id)
     {
         //Logic here
-        var request = MakeEventRequest(ActionType.ActionCreate,
-new Event.Builder()
-        .SetId(id)
-        .Build());
+        var request = MakeEventRequest(ActionType.ActionGet,
+            new Event.Builder()
+                .SetId(id)
+                .Build());
         return (Event)await _handler.HandleAsync(request);
     }
 

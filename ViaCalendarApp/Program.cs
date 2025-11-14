@@ -12,7 +12,7 @@ builder.Services.AddRazorComponents()
 var httpClientBuilder = builder.Services.AddHttpClient<EventServiceClient>(client =>
 {
 
-    client.BaseAddress = new Uri("http://localhost:5096");
+    client.BaseAddress = new Uri("https://localhost:7259");
     client.Timeout = TimeSpan.FromSeconds(10);
 });
 if (builder.Environment.IsDevelopment())

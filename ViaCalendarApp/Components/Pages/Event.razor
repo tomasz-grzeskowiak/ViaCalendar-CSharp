@@ -19,6 +19,7 @@
                 <span>@ev.Name @ev.Tag</span>
                 <span>
                     <button class="btn btn-sm btn-warning me-1" @onclick="() => StartEdit(ev)">Edit</button>
+                    <button class="btn btn-sm btn-danger" @onclick="() => DeleteEvent(ev.Id)">Delete</button>
                 </span>
             </li>
         }
@@ -27,10 +28,6 @@
 
 <h4>@(editingEvent is null ? "Add Event" : "Edit Event")</h4>
 
-<div class="mb-3">
-    <label>Event ID:</label>
-    <input class="form-control" @bind="formEventId" />
-</div>
 <div class="mb-3">
     <label>Event Name:</label>
     <input class="form-control" @bind="formEventName" />
@@ -47,9 +44,9 @@
 @code {
     private List<EventDto>? events;
     private string statusMessage = "Click 'Load Events' to fetch data.";
+    private int eventId;
 
     private EventDto? editingEvent = null;
-    private string formEventId = "";
     private string formEventName = "";
     private bool formEventRecursive = true;
     private string formEventTag = "";
@@ -70,32 +67,41 @@
     private void StartEdit(EventDto ev)
     {
         editingEvent = ev;
+        eventId = ev.Id;
         formEventName = ev.Name;
+        formEventTag = ev.Tag;
     }
 
     private void CancelEdit()
     {
         editingEvent = null;
-        formEventId = "";
+        eventId = 0;
         formEventName = "";
+        formEventTag = "";
     }
 
     private async Task SaveEvent()
     {
-        if (string.IsNullOrWhiteSpace(formEventId) || string.IsNullOrWhiteSpace(formEventName) || string.IsNullOrEmpty(formEventTag))
+        if (string.IsNullOrWhiteSpace(formEventName) || string.IsNullOrEmpty(formEventTag))
         {
-            statusMessage = "Event ID and Event Name  or TAG are required.";
+            statusMessage = "Event Name  or TAG are required.";
             return;
         }
 
         try
         {
-            var dto = new EventDto( formEventName, formEventTag, formEventRecursive );
+            var dto = new EventDto(0, formEventName, formEventTag, formEventRecursive );
 
             if (editingEvent == null)
             {
                 await EventService.CreateAsync(new CreateEventDto(0,dto.Name, dto.Tag, dto.Recursive));
                 statusMessage = $"Event '{dto.Name}'  '{dto.Tag}' '{dto.Recursive}' created.";
+            }
+
+            if (editingEvent != null)
+            {
+                await EventService.UpdateAsync(new CreateEventDto(eventId,dto.Name, dto.Tag, dto.Recursive));
+                statusMessage = $"Event '{dto.Name}'  '{dto.Tag}' '{dto.Recursive}' updated.";
             }
 
             await LoadEvents();
@@ -104,6 +110,19 @@
         catch (Exception ex)
         {
             statusMessage = $"Error saving event: {ex.Message}";
+        }
+    }
+    private async Task DeleteEvent(int id)
+    {
+        try
+        {
+            await EventService.DeleteAsync(id);
+            statusMessage = $"Event with ID '{id}' deleted.";
+            await LoadEvents();
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Error deleting company: {ex.Message}";
         }
     }
 }

@@ -1,3 +1,4 @@
+using GrpcAPI;
 using GrpcAPI.Services;
 using PersistenceContracts;
 using PersistenceHandlerGrpc.EventPersistence;
@@ -9,9 +10,14 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 //add more services
 builder.Services.AddScoped<EventServiceProto>();
-builder.Services.AddScoped<ICalendarPersistenceHandler,EventHandlerGrpc>();
 builder.Services.AddScoped<IEventService, EventService>();
-
+builder.Services.AddKeyedScoped<ICalendarPersistenceHandler, EventHandlerGrpc>("event");
+builder.Services.AddSingleton<CalendarMainGrpcHandler>(sp =>
+{
+    var channel =
+        Grpc.Net.Client.GrpcChannel.ForAddress("http://localhost:6032");
+    return new CalendarMainGrpcHandler(channel);
+});
 
 var app = builder.Build();
 

@@ -32,5 +32,16 @@ public class EventServiceClient
         var response = await _http.PutAsJsonAsync("event", eventDto);
         response.EnsureSuccessStatusCode();
     }
-   
+    public async Task DeleteAsync(int id)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Delete, $"event/{id}");
+        var response = await _http.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+    }
+    public async Task GetSingleAsync(int id)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, $"event/{id}");
+        var response = await _http.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+    }
 }

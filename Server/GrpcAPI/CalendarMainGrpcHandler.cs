@@ -6,21 +6,11 @@ namespace GrpcAPI
     public class CalendarMainGrpcHandler
     {
         private readonly CalendarProtoService.CalendarProtoServiceClient _client;
-        private const string Host = "http://localhost:6032";
-        
-        private static readonly Lazy<CalendarMainGrpcHandler> _instance =
-            new Lazy<CalendarMainGrpcHandler>(() =>
-            {
-                var channel = Grpc.Net.Client.GrpcChannel.ForAddress(Host);
-                return new CalendarMainGrpcHandler(channel);
-            });
-        
-        private CalendarMainGrpcHandler(GrpcChannel channel)
+
+        public CalendarMainGrpcHandler(GrpcChannel channel)
         {
             _client = new CalendarProtoService.CalendarProtoServiceClient(channel);
         }
-
-        public static CalendarMainGrpcHandler Instance => _instance.Value;
         
         /// <summary>
         /// Sends a request to the gRPC server specifying the handler and action
