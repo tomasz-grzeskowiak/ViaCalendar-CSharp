@@ -14,7 +14,6 @@ public class EventServiceProto : IEventRepository
     {
         _handler = handler;
     }
-
     public async Task<Event> CreateAsync(Event payload)
     {
         var proto = new EventProto()

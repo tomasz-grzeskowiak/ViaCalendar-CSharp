@@ -1,0 +1,153 @@
+﻿@page "/user"
+@using APIContracts.DTOs.User
+@using ViaCalendarApp.Services
+@inject UserServiceClient UserService
+@rendermode InteractiveServer
+<h3>User</h3>
+
+
+<p>@statusMessage</p>
+
+<button class="btn btn-primary mb-2" @onclick="LoadUsers">Load Users</button>
+
+@if (users != null)
+{
+    <ul class="list-group mb-3">
+        @foreach (var us in users)
+        {
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <span>@us.UserName  @us.Password  @us.Email  @us.FirstName  @us.LastName</span>
+                <span>
+                    <button class="btn btn-sm btn-warning me-1" @onclick="() => StartEdit(us)">Edit</button>
+                    <button class="btn btn-sm btn-danger" @onclick="() => DeleteUser(us.Id)">Delete</button>
+                </span>
+            </li>
+        }
+    </ul>
+}
+
+<h4>@(editingUser is null ? "Add User" : "Edit User")</h4>
+
+<div class="mb-3">
+    <label>User Name:</label>
+    <input class="form-control" @bind="formUserUserName" />
+</div>
+<div class="mb-3">
+    <label>Password:</label>
+    <input class="form-control" @bind="formUserPassword"/>
+</div>
+
+<div class="mb-3">
+    <label>Email</label>
+    <input class="form-control" @bind="formUserEmail"/>
+</div>
+
+<div class="mb-3">
+    <label>First name</label>
+    <input class="form-control" @bind="formUserFirstName"/>
+</div>
+
+<div class="mb-3">
+    <label>Last name</label>
+    <input class="form-control" @bind="formUserLastName"/>
+</div>
+
+<button class="btn btn-success me-1" @onclick="SaveUser">Save</button>
+<button class="btn btn-secondary" @onclick="CancelEdit">Cancel</button>
+
+
+@code {
+    private List<UsertDto>? users;
+    private string statusMessage = "Click 'Load Users' to fetch data.";
+    private int userId;
+
+    private UsertDto? editingUser = null;
+    private string formUserUserName = "";
+    private string formUserPassword = "";
+    private string formUserEmail = "";
+    private string formUserFirstName = "";
+    private string formUserLastName = "";
+
+    private async Task LoadUsers()
+    {
+        try
+        {
+            users = await UserService.GetAllAsync();
+            statusMessage = $"Loaded {users.Count} users.";
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Error loading users: {ex.Message}";
+        }
+    }
+
+    private void StartEdit(UsertDto us)
+    {
+        editingUser = us;
+        userId = us.Id;
+        formUserUserName = us.UserName;
+        formUserPassword = us.Password;
+        formUserEmail = us.Email;
+        formUserFirstName = us.FirstName;
+        formUserLastName = us.LastName;
+    }
+
+    private void CancelEdit()
+    {
+        editingUser = null;
+        userId = 0;
+        formUserUserName = "";
+        formUserPassword = "";
+        formUserEmail = "";
+        formUserFirstName = "";
+        formUserLastName = "";
+    }
+
+    private async Task SaveUser()
+    {
+        if (string.IsNullOrWhiteSpace(formUserUserName) || string.IsNullOrEmpty(formUserPassword)
+        || string.IsNullOrWhiteSpace(formUserEmail) || string.IsNullOrWhiteSpace(formUserFirstName) 
+        || string.IsNullOrWhiteSpace(formUserLastName))
+        {
+            statusMessage = "Some fields are empty.";
+            return;
+        }
+
+        try
+        {
+            var dto = new UsertDto(0, formUserUserName, formUserPassword, formUserEmail, formUserFirstName, formUserLastName );
+
+            if (editingUser == null)
+            {
+                await UserService.CreateAsync(new CreateUserDto(0,dto.UserName, dto.Password, dto.Email, dto.FirstName, dto.LastName));
+                statusMessage = $"User '{dto.UserName}'  '{dto.Password}' '{dto.Email}', '{dto.FirstName}', '{dto.LastName}' created.";
+            }
+
+            if (editingUser != null)
+            {
+                await UserService.UpdateAsync(new CreateUserDto(userId,dto.UserName, dto.Password, dto.Email, dto.FirstName, dto.LastName));
+                statusMessage = $"User '{dto.UserName}'  '{dto.Password}' '{dto.Email}', '{dto.FirstName}', '{dto.LastName}' updated.";
+            }
+
+            await LoadUsers();
+            CancelEdit();
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Error saving event: {ex.Message}";
+        }
+    }
+    private async Task DeleteUser(int id)
+    {
+        try
+        {
+            await UserService.DeleteAsync(id);
+            statusMessage = $"User with ID '{id}' deleted.";
+            await LoadUsers();
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Error deleting company: {ex.Message}";
+        }
+    }
+}

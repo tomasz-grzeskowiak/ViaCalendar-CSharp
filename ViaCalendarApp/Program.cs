@@ -9,15 +9,30 @@ builder.Services.AddServerSideBlazor();
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-var httpClientBuilder = builder.Services.AddHttpClient<EventServiceClient>(client =>
+// Register EventServiceClient
+var eventHttpClientBuilder = builder.Services.AddHttpClient<EventServiceClient>(client =>
 {
-
     client.BaseAddress = new Uri("https://localhost:7259");
     client.Timeout = TimeSpan.FromSeconds(10);
 });
+
+// Register UserServiceClient
+var userHttpClientBuilder = builder.Services.AddHttpClient<UserServiceClient>(client =>
+{
+    client.BaseAddress = new Uri("https://localhost:7259"); // Same base address or adjust as needed
+    client.Timeout = TimeSpan.FromSeconds(10);
+});
+
 if (builder.Environment.IsDevelopment())
 {
-    httpClientBuilder.ConfigurePrimaryHttpMessageHandler(() =>
+    eventHttpClientBuilder.ConfigurePrimaryHttpMessageHandler(() =>
+        new HttpClientHandler
+        {
+            ServerCertificateCustomValidationCallback =
+                HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+        });
+    
+    userHttpClientBuilder.ConfigurePrimaryHttpMessageHandler(() =>
         new HttpClientHandler
         {
             ServerCertificateCustomValidationCallback =
@@ -35,11 +50,11 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
-
+app.UseStaticFiles(); // Add this if you have static files
 app.UseAntiforgery();
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
+
 app.Run();

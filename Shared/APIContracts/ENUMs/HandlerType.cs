@@ -3,5 +3,7 @@
 public enum HandlerType
 {
     HandlerUnknown = 0,
-    HandlerEvent =1
+    HandlerEvent =1,
+    HandlerUser =2
+    
 }

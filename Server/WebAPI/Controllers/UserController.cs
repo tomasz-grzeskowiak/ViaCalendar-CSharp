@@ -1,0 +1,79 @@
+﻿namespace WebAPI.Controllers;
+using APIContracts.DTOs.User;
+using Entities;
+using APIContracts;
+using Microsoft.AspNetCore.Mvc;
+using Services.User;
+
+[ApiController]
+[Route("user")]
+public class UserController : ControllerBase
+{
+    private readonly IUserService _userService;
+    //Service used in constructor
+    public UserController(IUserService userService)
+    {
+        _userService = userService;
+    } 
+
+    // GET /eventEntity
+    [HttpGet]
+    public async Task<ActionResult> GetCompanies()
+    {
+        var usersList = _userService.GetManyAsync();
+        var usersDto = usersList
+            .Select(u => new UsertDto(u.Id, u.UserName, u.Password, u.Email, u.FirstName, u.LastName))
+            .ToList();
+
+        return Ok(usersDto);
+    }
+
+    // POST /eventEntity
+    [HttpPost]
+    public async Task<ActionResult> CreateUser([FromBody] CreateUserDto dto)
+    {
+        var userEntity = new User.Builder()
+            .SetId(dto.Id)
+            .SetUsername(dto.UserName)
+            .SetPassword(dto.Password)
+            .SetEmail(dto.Email)
+            .SetFirstName(dto.FirstName)
+            .SetLastName(dto.LastName)
+            .Build();
+
+        await _userService.CreateAsync(userEntity);
+        return CreatedAtAction(nameof(CreateUser), new { nameof=dto.UserName, dto.Password, dto.Email, dto.FirstName, dto.LastName }, dto);
+    }
+
+    // PUT /eventEntity
+    [HttpPut]
+    public async Task<ActionResult> UpdateUser([FromBody] CreateUserDto dto)
+    {
+        var userEntity = new User.Builder()
+            .SetId(dto.Id)
+            .SetUsername(dto.UserName)
+            .SetPassword(dto.Password)
+            .SetEmail(dto.Email)
+            .SetFirstName(dto.FirstName)
+            .SetLastName(dto.LastName)
+            .Build();
+
+        await _userService.UpdateAsync(userEntity);
+        return NoContent();
+    }
+    // GET /event/{id}
+    [HttpGet("{id}")]
+    public async Task<ActionResult<CreateUserDto>> GetSingleEventAsync(int id)
+    {
+        var _user = await _userService.GetSingleAsync(id);
+
+        return Ok(new CreateUserDto(_user.Id, _user.UserName, _user.Password, _user.Email, _user.FirstName, _user.LastName));
+    }
+    // DELETE /event/{id}
+    [HttpDelete("{id}")]
+    public async Task<ActionResult> DeleteCompanyAsync(int id)
+    {
+        await _userService.DeleteAsync(id);
+        return NoContent();
+    }
+}
