@@ -3,11 +3,14 @@
 package via.sep3.viacalendar.gRPC;
 option csharp_namespace = "GrpcAPI.Protos";
 import "google/protobuf/any.proto";
+import "google/protobuf/timestamp.proto";
 
 enum HandlerTypeProto {
   HANDLER_UNKNOWN = 0;
   HANDLER_EVENT = 1;
   HANDLER_USER = 2;
+  HANDLER_GROUP = 3;
+  HANDLER_CALENDAR = 4;
 }
 
 enum ActionTypeProto {
@@ -39,7 +42,9 @@ message EventProto {
   string name = 2;
   string tag = 3;
   bool recursive = 4;
-
+  int32 creatorId = 5;
+  google.protobuf.Timestamp duration = 6;
+  TypeOfRecursiveProto typeOfRecursive = 7;
 }
 
 message UserProto {
@@ -49,8 +54,20 @@ message UserProto {
   string password =4;
   string first_name = 5;
   string last_name = 6;
+  repeated int32 eventIds = 7;
+  repeated  int32 calendarsIds = 8;
+  int32 groupId = 9;
 }
-
+message GroupProto{
+  int32 id = 1;
+  string name = 2;
+  repeated int32 users = 3;
+}
+message CalendarProto{
+  int32 id = 1;
+  int32 userId = 2;
+  repeated int32 eventListId= 3;
+}
 message UserProtoList {
   repeated UserProto users = 1;
 }
@@ -61,4 +78,10 @@ service CalendarProtoService {
 
 message EventProtoList {
   repeated EventProto events = 1;
+}
+enum TypeOfRecursiveProto {
+  NONE = 0;
+  DAY = 1;
+  MONTH = 2;
+  YEAR= 3;
 }

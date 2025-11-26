@@ -1,4 +1,5 @@
-﻿using Grpc.Net.Client;
+﻿using Google.Protobuf.WellKnownTypes;
+using Grpc.Net.Client;
 using GrpcAPI.Protos;
 
 namespace GrpcAPI
@@ -22,13 +23,24 @@ namespace GrpcAPI
             try
             {
                 ResponseProto  response= await _client.SendRequestAsync(request);
-                return  response;
+                switch (response.Status)
+                {
+                    case StatusTypeProto.StatusOk:
+                        return  response;
+                    case StatusTypeProto.StatusError:
+                        var errorString = response.Payload.Unpack<StringValue>().Value;
+                        throw new Exception($"{response.Status}: {errorString}");
+                    case StatusTypeProto.StatusInvalidPayload:
+                        var errorString2 = response.Payload.Unpack<StringValue>().Value;
+                        throw new InvalidDataException($"{response.Status}: {errorString2}");
+                }
             }
             catch (Grpc.Core.RpcException ex)
             {
                 Console.WriteLine($"RPC failed: {ex.Status}");
                 throw;
             }
+            throw new Exception("Grpc call failed");
         }
     }
 }
