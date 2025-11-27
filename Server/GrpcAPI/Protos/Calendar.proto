@@ -61,6 +61,7 @@ message UserProto {
 message GroupProto{
   int32 id = 1;
   string name = 2;
+  repeated int32 users = 3;
 }
 message CalendarProto{
   int32 id = 1;
@@ -78,14 +79,13 @@ service CalendarProtoService {
 message EventProtoList {
   repeated EventProto events = 1;
 }
-
-message GroupProtoList {
-  repeated GroupProto groups = 1;
-}
-
 enum TypeOfRecursiveProto {
   NONE = 0;
   DAY = 1;
   MONTH = 2;
   YEAR= 3;
+}
+
+message GroupProtoList {
+  repeated GroupProto groups = 1;
 }
