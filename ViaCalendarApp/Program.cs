@@ -23,6 +23,13 @@ var userHttpClientBuilder = builder.Services.AddHttpClient<UserServiceClient>(cl
     client.Timeout = TimeSpan.FromSeconds(10);
 });
 
+// Register GroupServiceClient
+var groupHttpClientBuilder = builder.Services.AddHttpClient<GroupServiceClient>(client =>
+{
+    client.BaseAddress = new Uri("https://localhost:7259"); // Same base address or adjust as needed
+    client.Timeout = TimeSpan.FromSeconds(10);
+});
+
 if (builder.Environment.IsDevelopment())
 {
     eventHttpClientBuilder.ConfigurePrimaryHttpMessageHandler(() =>
@@ -33,6 +40,13 @@ if (builder.Environment.IsDevelopment())
         });
     
     userHttpClientBuilder.ConfigurePrimaryHttpMessageHandler(() =>
+        new HttpClientHandler
+        {
+            ServerCertificateCustomValidationCallback =
+                HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+        });
+    
+    groupHttpClientBuilder.ConfigurePrimaryHttpMessageHandler(() =>
         new HttpClientHandler
         {
             ServerCertificateCustomValidationCallback =
