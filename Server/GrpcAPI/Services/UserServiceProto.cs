@@ -23,12 +23,13 @@ public class UserServiceProto : IUserRepository
             Email = payload.Email,
             FirstName = payload.FirstName,
             LastName = payload.LastName,
+            GroupId = payload.GroupId
         };
         var request = MakeRequestProto(ActionTypeProto.ActionCreate, proto);
 
-        var reponse = await _handler.SendRequestAsync(request);
+        var response = await _handler.SendRequestAsync(request);
 
-        var created = reponse.Payload.Unpack<UserProto>();
+        var created = response.Payload.Unpack<UserProto>();
 
         return new User.Builder()
             .SetUsername(created.Username)
@@ -36,6 +37,7 @@ public class UserServiceProto : IUserRepository
             .SetFirstName(created.FirstName)
             .SetLastName(created.LastName)
             .SetPassword(created.Password)
+            .SetGroupId(created.GroupId)
             .Build();
     }
 
@@ -49,6 +51,7 @@ public class UserServiceProto : IUserRepository
             Email = payload.Email,
             FirstName = payload.FirstName,
             LastName = payload.LastName,
+            GroupId = payload.GroupId
         };
         var update = MakeRequestProto(ActionTypeProto.ActionUpdate, proto);
         await _handler.SendRequestAsync(update);
@@ -81,6 +84,7 @@ public class UserServiceProto : IUserRepository
             .SetFirstName(userProto.FirstName)
             .SetLastName(userProto.LastName)
             .SetPassword(userProto.Password)
+            .SetGroupId(userProto.GroupId)
             .Build();
     }
 
@@ -111,6 +115,7 @@ public class UserServiceProto : IUserRepository
                     .SetFirstName(userProto.FirstName)
                     .SetLastName(userProto.LastName)
                     .SetPassword(userProto.Password)
+                    .SetGroupId(userProto.GroupId)
                     .Build());
             }
             return users.AsQueryable();

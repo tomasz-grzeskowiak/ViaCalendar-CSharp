@@ -3,12 +3,13 @@
 public class User
 {
     public string UserName { get; private set; }
-    public string Password {get; private set;}
-    public string Email {get; private set;}
-    public string LastName {get; private set;}
-    public string FirstName {get; private set;}
+    public string Password { get; private set; }
+    public string Email { get; private set; }
+    public string LastName { get; private set; }
+    public string FirstName { get; private set; }
     
     public int Id { get; set; } = 0;
+    public int GroupId { get; private set; } = 0; // Added GroupId
 
     // Builder inner class
     public class Builder
@@ -19,12 +20,12 @@ public class User
         private string _lastName = "Default lastname";
         private string _firstName = "Default firstname";
         private string _password = "Default password";
-        
+        private int _groupId = 0; 
 
         public Builder SetUsername(string username)
         {
             if (string.IsNullOrEmpty(username))
-                throw new ArgumentException("Name cannot be null or empty");
+                throw new ArgumentException("Username cannot be null or empty");
             _username = username;
             return this;
         }
@@ -69,6 +70,14 @@ public class User
             return this;
         }
 
+        public Builder SetGroupId(int groupId) 
+        {
+            if (groupId < 0)
+                throw new ArgumentException("GroupId cannot be negative");
+            _groupId = groupId;
+            return this;
+        }
+
         public User Build()
         {
             return new User
@@ -77,7 +86,9 @@ public class User
                 Password = _password,
                 Email = _email,
                 FirstName = _firstName,
-                LastName = _lastName
+                LastName = _lastName,
+                Id = _id,
+                GroupId = _groupId // Set GroupId
             };
         }
     }

@@ -14,9 +14,9 @@ public class UserServiceClient
     }
 
     // Get all companies
-    public async Task<List<UsertDto>> GetAllAsync()
+    public async Task<List<UserDto>> GetAllAsync()
     {
-        return await _http.GetFromJsonAsync<List<UsertDto>>("user") ?? new List<UsertDto>();
+        return await _http.GetFromJsonAsync<List<UserDto>>("user") ?? new List<UserDto>();
     }
 
     // Create a user

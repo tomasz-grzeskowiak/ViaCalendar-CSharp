@@ -57,11 +57,11 @@
 
 
 @code {
-    private List<UsertDto>? users;
+    private List<UserDto>? users;
     private string statusMessage = "Click 'Load Users' to fetch data.";
     private int userId;
 
-    private UsertDto? editingUser = null;
+    private UserDto? editingUser = null;
     private string formUserUserName = "";
     private string formUserPassword = "";
     private string formUserEmail = "";
@@ -81,7 +81,7 @@
         }
     }
 
-    private void StartEdit(UsertDto us)
+    private void StartEdit(UserDto us)
     {
         editingUser = us;
         userId = us.Id;
@@ -115,7 +115,7 @@
 
         try
         {
-            var dto = new UsertDto(0, formUserUserName, formUserPassword, formUserEmail, formUserFirstName, formUserLastName );
+            var dto = new UserDto(0, formUserUserName, formUserPassword, formUserEmail, formUserFirstName, formUserLastName );
 
             if (editingUser == null)
             {

@@ -2,65 +2,204 @@
 @using APIContracts.DTOs.Event
 @using ViaCalendarApp.Services
 @inject EventServiceClient EventService
+@inject NavigationManager Navigation
+@using ViaCalendarApp.Helper
+@inject StorageHelper Storage
 @rendermode InteractiveServer
 
 <h3>Events</h3>
 
-<p>@statusMessage</p>
-
-<button class="btn btn-primary mb-2" @onclick="LoadEvents">Load Events</button>
-
-@if (events != null)
+@if (!isAuthenticated)
 {
-    <ul class="list-group mb-3">
-        @foreach (var ev in events)
-        {
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-                <span>@ev.Name @ev.Tag</span>
-                <span>
-                    <button class="btn btn-sm btn-warning me-1" @onclick="() => StartEdit(ev)">Edit</button>
-                    <button class="btn btn-sm btn-danger" @onclick="() => DeleteEvent(ev.Id)">Delete</button>
-                </span>
-            </li>
-        }
-    </ul>
+    <div class="alert alert-warning">
+        <p>You need to <a href="/login">login</a> or <a href="/register">register</a> to view and create events.</p>
+    </div>
 }
+else
+{
+    <div class="alert alert-info mb-3">
+        <p>Welcome, @currentUserName! (User ID: @currentUserId)</p>
+    </div>
 
-<h4>@(editingEvent is null ? "Add Event" : "Edit Event")</h4>
+    <p>@statusMessage</p>
 
-<div class="mb-3">
-    <label>Event Name:</label>
-    <input class="form-control" @bind="formEventName" />
-</div>
-<div class="mb-3">
-    <label>Tag:</label>
-    <input class="form-control" @bind="formEventTag"/>
-</div>
+    <button class="btn btn-primary mb-2" @onclick="LoadEvents">Load Events</button>
 
-<button class="btn btn-success me-1" @onclick="SaveEvent">Save</button>
-<button class="btn btn-secondary" @onclick="CancelEdit">Cancel</button>
+    @if (events != null)
+    {
+        <ul class="list-group mb-3">
+            @foreach (var ev in events)
+            {
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>@ev.Name</strong> - @ev.Tag
+                        @if (ev.Recursive)
+                        {
+                            <span class="badge bg-info">Recursive</span>
+                        }
+                        <br/>
+                        <small class="text-muted">Creator: @(ev.CreatorId == currentUserId ? "You" : $"User {ev.CreatorId}")</small>
+                    </div>
+                    <span>
+                        @if (ev.CreatorId == currentUserId)
+                        {
+                            <button class="btn btn-sm btn-warning me-1" @onclick="() => StartEdit(ev)">Edit</button>
+                            <button class="btn btn-sm btn-danger" @onclick="() => DeleteEvent(ev.Id)">Delete</button>
+                        }
+                        else
+                        {
+                            <span class="text-muted">(Not your event)</span>
+                        }
+                    </span>
+                </li>
+            }
+        </ul>
+    }
 
+    <h4>@(editingEvent is null ? "Create New Event" : "Edit Event")</h4>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="mb-3">
+                <label class="form-label">Event Name *</label>
+                <input class="form-control" @bind="formEventName" />
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">Tag *</label>
+                <input class="form-control" @bind="formEventTag" placeholder="e.g., Work, Personal, Meeting" />
+            </div>
+            
+            <div class="mb-3 form-check">
+                <input type="checkbox" class="form-check-input" @bind="formEventRecursive" />
+                <label class="form-check-label">Recursive Event</label>
+            </div>
+            
+            
+            <div class="mb-3">
+                <label class="form-label">Recurrence Type</label>
+                <select class="form-select" @bind="formRecurrenceType">
+                    <option value="">None</option>
+                    <option value="Day">Daily</option>
+                    <option value="Month">Monthly</option>
+                    <option value="Year">Yearly</option>
+                </select>
+            </div>
+            
+            <div class="d-flex gap-2">
+                <button class="btn btn-success" @onclick="SaveEvent">
+                    @(editingEvent is null ? "Create Event" : "Update Event")
+                </button>
+                @if (editingEvent != null)
+                {
+                    <button class="btn btn-secondary" @onclick="CancelEdit">Cancel</button>
+                }
+            </div>
+        </div>
+    </div>
+}
 
 @code {
     private List<EventDto>? events;
-    private string statusMessage = "Click 'Load Events' to fetch data.";
+    private string statusMessage = "";
     private int eventId;
+    private bool isAuthenticated = false;
+    private int currentUserId = 0;
+    private string currentUserName = "";
 
     private EventDto? editingEvent = null;
     private string formEventName = "";
-    private bool formEventRecursive = true;
+    private bool formEventRecursive = false;
     private string formEventTag = "";
+    private string formRecurrenceType = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CheckAuthentication();
+        if (isAuthenticated)
+        {
+            await LoadEvents();
+        }
+    }
+
+    private async Task CheckAuthentication()
+    {
+        try
+        {
+            // Use StorageHelper instead of direct JS calls
+            var isLoggedIn = await Storage.GetItem("isLoggedIn");
+            var storedUserId = await Storage.GetItem("userId");
+            var storedUserName = await Storage.GetItem("userName");
+        
+            if (isLoggedIn == "true" && !string.IsNullOrEmpty(storedUserId))
+            {
+                isAuthenticated = true;
+                currentUserId = int.Parse(storedUserId);
+                currentUserName = storedUserName ?? $"User {storedUserId}";
+                statusMessage = "";
+            }
+            else
+            {
+                isAuthenticated = false;
+                statusMessage = "Please login to view and create events.";
+            }
+        }
+        catch (Exception ex)
+        {
+            isAuthenticated = false;
+            statusMessage = $"Authentication error: {ex.Message}";
+        }
+    }
+
+    private async Task<int> GetCurrentUserId()
+    {
+        // Implement based on your authentication system
+        // This could come from JWT token, session, or database lookup
+        // Example: return await AuthService.GetCurrentUserId();
+        return 1; // Placeholder
+    }
 
     private async Task LoadEvents()
     {
         try
         {
-            events = await EventService.GetAllAsync();
-            statusMessage = $"Loaded {events.Count} events.";
+            // Get all events
+            var allEvents = await EventService.GetAllAsync();
+        
+            // DEBUG: Let's see what we're working with
+            Console.WriteLine($"=== DEBUG LOAD EVENTS ===");
+            Console.WriteLine($"Current User ID: {currentUserId} (Type: {currentUserId.GetType().Name})");
+        
+            if (allEvents != null)
+            {
+                Console.WriteLine($"Total events from API: {allEvents.Count}");
+            
+                // Check each event
+                foreach (var ev in allEvents)
+                {
+                    Console.WriteLine($"Event {ev.Id}: CreatorId = {ev.CreatorId} (Type: {ev.CreatorId.GetType().Name})");
+                    Console.WriteLine($"  Comparison: {ev.CreatorId} == {currentUserId} ? {ev.CreatorId == currentUserId}");
+                }
+            
+                // Filter events - this should work since both are int
+                events = allEvents
+                    .Where(e => e.CreatorId == currentUserId)
+                    .ToList();
+                
+                Console.WriteLine($"Filtered to: {events.Count} events");
+            }
+            else
+            {
+                events = new List<EventDto>();
+            }
+        
+            statusMessage = $"Loaded {events.Count} of your events (filtered from {allEvents?.Count ?? 0} total).";
         }
         catch (Exception ex)
         {
             statusMessage = $"Error loading events: {ex.Message}";
+            Console.WriteLine($"ERROR: {ex.Message}");
+            events = new List<EventDto>();
         }
     }
 
@@ -70,39 +209,44 @@
         eventId = ev.Id;
         formEventName = ev.Name;
         formEventTag = ev.Tag;
+        formEventRecursive = ev.Recursive;
+        // Set other fields as needed
     }
 
     private void CancelEdit()
     {
         editingEvent = null;
-        eventId = 0;
+        eventId = 0;    
         formEventName = "";
         formEventTag = "";
+        formEventRecursive = true;
     }
 
     private async Task SaveEvent()
     {
-        if (string.IsNullOrWhiteSpace(formEventName) || string.IsNullOrEmpty(formEventTag))
+        if (string.IsNullOrWhiteSpace(formEventName) || string.IsNullOrWhiteSpace(formEventTag))
         {
-            statusMessage = "Event Name  or TAG are required.";
+            statusMessage = "Event Name and Tag are required.";
             return;
         }
 
         try
         {
-            var dto = new EventDto(0, formEventName, formEventTag, formEventRecursive );
+            var createDto = new CreateEventDto(
+                0,
+                Name: formEventName,
+                Tag: formEventTag,
+                Recursive:formEventRecursive,
+                CreatorId: currentUserId // Add CreatorId to your DTO
+                
+            );
 
             if (editingEvent == null)
             {
-                await EventService.CreateAsync(new CreateEventDto(0,dto.Name, dto.Tag, dto.Recursive));
-                statusMessage = $"Event '{dto.Name}'  '{dto.Tag}' '{dto.Recursive}' created.";
+                await EventService.CreateAsync(createDto);
+                statusMessage = $"Event '{formEventName}' created successfully.";
             }
-
-            if (editingEvent != null)
-            {
-                await EventService.UpdateAsync(new CreateEventDto(eventId,dto.Name, dto.Tag, dto.Recursive));
-                statusMessage = $"Event '{dto.Name}'  '{dto.Tag}' '{dto.Recursive}' updated.";
-            }
+            
 
             await LoadEvents();
             CancelEdit();
@@ -112,17 +256,18 @@
             statusMessage = $"Error saving event: {ex.Message}";
         }
     }
+
     private async Task DeleteEvent(int id)
     {
         try
         {
             await EventService.DeleteAsync(id);
-            statusMessage = $"Event with ID '{id}' deleted.";
+            statusMessage = $"Event deleted successfully.";
             await LoadEvents();
         }
         catch (Exception ex)
         {
-            statusMessage = $"Error deleting company: {ex.Message}";
+            statusMessage = $"Error deleting event: {ex.Message}";
         }
     }
 }

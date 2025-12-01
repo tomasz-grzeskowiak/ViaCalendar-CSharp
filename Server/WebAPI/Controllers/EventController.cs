@@ -22,7 +22,7 @@ public class EventController : ControllerBase
     {
         var eventsList = _eventService.GetManyAsync();
         var eventsDto = eventsList
-            .Select(e => new EventDto(e.Id,e.Name, e.Tag, e.Recursive))
+            .Select(e => new EventDto(e.Id,e.Name, e.Tag, e.Recursive, e.CreatorId))
             .ToList();
 
         return Ok(eventsDto);
@@ -37,6 +37,7 @@ public class EventController : ControllerBase
             .SetName(dto.Name)
             .SetRecursive(dto.Recursive)
             .SetTag(dto.Tag)
+            .SetCreatorId(dto.CreatorId)
             .Build();
 
         await _eventService.CreateAsync(eventEntity);
@@ -52,6 +53,7 @@ public class EventController : ControllerBase
             .SetName(dto.Name)
             .SetRecursive(dto.Recursive)
             .SetTag(dto.Tag)
+            .SetCreatorId(dto.CreatorId)
             .Build();
 
         await _eventService.UpdateAsync(eventEntity);
@@ -63,7 +65,7 @@ public class EventController : ControllerBase
     {
         var _event = await _eventService.GetSingleAsync(id);
 
-        return Ok(new CreateEventDto(_event.Id, _event.Name, _event.Tag, _event.Recursive));
+        return Ok(new CreateEventDto(_event.Id, _event.Name, _event.Tag, _event.Recursive,  _event.CreatorId));
     }
     // DELETE /event/{id}
     [HttpDelete("{id}")]

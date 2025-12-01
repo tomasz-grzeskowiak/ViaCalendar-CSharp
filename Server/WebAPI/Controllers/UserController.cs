@@ -22,7 +22,7 @@ public class UserController : ControllerBase
     {
         var usersList = _userService.GetManyAsync();
         var usersDto = usersList
-            .Select(u => new UsertDto(u.Id, u.UserName, u.Password, u.Email, u.FirstName, u.LastName))
+            .Select(u => new UserDto(u.Id, u.UserName, u.Password, u.Email, u.FirstName, u.LastName, u.GroupId))
             .ToList();
 
         return Ok(usersDto);
@@ -39,6 +39,7 @@ public class UserController : ControllerBase
             .SetEmail(dto.Email)
             .SetFirstName(dto.FirstName)
             .SetLastName(dto.LastName)
+            .SetGroupId(dto.GroupId)
             .Build();
 
         await _userService.CreateAsync(userEntity);
@@ -56,6 +57,7 @@ public class UserController : ControllerBase
             .SetEmail(dto.Email)
             .SetFirstName(dto.FirstName)
             .SetLastName(dto.LastName)
+            .SetGroupId(dto.GroupId)
             .Build();
 
         await _userService.UpdateAsync(userEntity);
@@ -67,7 +69,7 @@ public class UserController : ControllerBase
     {
         var _user = await _userService.GetSingleAsync(id);
 
-        return Ok(new CreateUserDto(_user.Id, _user.UserName, _user.Password, _user.Email, _user.FirstName, _user.LastName));
+        return Ok(new CreateUserDto(_user.Id, _user.UserName, _user.Password, _user.Email, _user.FirstName, _user.LastName, _user.GroupId));
     }
     // DELETE /event/{id}
     [HttpDelete("{id}")]

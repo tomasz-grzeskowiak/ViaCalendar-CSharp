@@ -3,8 +3,9 @@
 public class Event
 {
     public string Name { get; private set; }
-    public string Tag {get; private set;}
-    public bool Recursive {get; private set;}
+    public string Tag { get; private set; }
+    public bool Recursive { get; private set; }
+    public int CreatorId { get; private set; }  // Added CreatorId
     
     public int Id { get; set; } = 0;
 
@@ -15,7 +16,7 @@ public class Event
         private int _id = 0;
         private string _tag = "Default Tag";
         private bool _recursive = true;
-        
+        private int _creatorId = 0;  // Added CreatorId to builder
 
         public Builder SetName(string name)
         {
@@ -47,6 +48,14 @@ public class Event
             return this;
         }
 
+        public Builder SetCreatorId(int creatorId)  // Added SetCreatorId method
+        {
+            if (creatorId < 0)
+                throw new ArgumentException("CreatorId cannot be negative");
+            _creatorId = creatorId;
+            return this;
+        }
+
         public Event Build()
         {
             return new Event
@@ -54,7 +63,8 @@ public class Event
                 Name = _name,
                 Id = _id,
                 Tag = _tag,
-                Recursive = _recursive
+                Recursive = _recursive,
+                CreatorId = _creatorId  // Set CreatorId
             };
         }
     }

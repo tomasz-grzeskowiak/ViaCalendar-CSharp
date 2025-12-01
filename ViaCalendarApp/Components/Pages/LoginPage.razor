@@ -1,0 +1,299 @@
+﻿@page "/login"
+@using APIContracts.DTOs.User
+@using ViaCalendarApp.Services
+@using ViaCalendarApp.Helper
+@inject StorageHelper Storage
+@rendermode InteractiveServer
+
+<h3>Login</h3>
+
+@if (isAuthenticated)
+{
+    <div class="alert alert-success">
+        <p>Welcome, @currentUser?.UserName!</p>
+        <p>Email: @currentUser?.Email</p>
+        <p>Group ID: @currentUser?.GroupId</p>
+        <button class="btn btn-danger" @onclick="Logout">Logout</button>
+    </div>
+}
+else
+{
+    <p class="text-danger">@statusMessage</p>
+
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">Login</h5>
+            
+            <div class="mb-3">
+                <label class="form-label">Username</label>
+                <input class="form-control" @bind="loginUsername" placeholder="Enter username" />
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">Password</label>
+                <input class="form-control" type="password" @bind="loginPassword" placeholder="Enter password" />
+            </div>
+            
+            <button class="btn btn-primary" @onclick="Login">Login</button>
+        </div>
+    </div>
+    
+    <hr />
+    
+    <div class="card mt-3">
+        <div class="card-body">
+            <h5 class="card-title">Register New User</h5>
+            
+            <div class="mb-3">
+                <label class="form-label">Username *</label>
+                <input class="form-control" @bind="registerUsername" placeholder="Choose username" />
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">Password *</label>
+                <input class="form-control" type="password" @bind="registerPassword" placeholder="Choose password" />
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">Confirm Password *</label>
+                <input class="form-control" type="password" @bind="registerConfirmPassword" placeholder="Confirm password" />
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">Email *</label>
+                <input class="form-control" type="email" @bind="registerEmail" placeholder="Enter email" />
+            </div>
+            
+            <div class="row">
+                <div class="col">
+                    <div class="mb-3">
+                        <label class="form-label">First Name</label>
+                        <input class="form-control" @bind="registerFirstName" placeholder="Enter first name" />
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="mb-3">
+                        <label class="form-label">Last Name</label>
+                        <input class="form-control" @bind="registerLastName" placeholder="Enter last name" />
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">Group ID (Optional)</label>
+                <input class="form-control" type="number" @bind="registerGroupId" placeholder="0 for no group" />
+            </div>
+            
+            <button class="btn btn-success" @onclick="Register">Register</button>
+        </div>
+    </div>
+}
+
+@code {
+    [Inject] private UserServiceClient UserService { get; set; } = default!;
+    [Inject] private NavigationManager Navigation { get; set; } = default!;
+    
+    
+    // Login fields
+    private string loginUsername = "";
+    private string loginPassword = "";
+    
+    // Register fields
+    private string registerUsername = "";
+    private string registerPassword = "";
+    private string registerConfirmPassword = "";
+    private string registerEmail = "";
+    private string registerFirstName = "";
+    private string registerLastName = "";
+    private int registerGroupId = 0;
+    
+    // State
+    private bool isAuthenticated = false;
+    private UserDto? currentUser = null;
+    private string statusMessage = "";
+    
+    // On initialization, check if user is already logged in
+    protected override async Task OnInitializedAsync()
+    {
+        await CheckAuthentication();
+    }
+    
+    private async Task CheckAuthentication()
+    {
+        // Check if user is stored in local storage or session
+        // You can implement your own authentication state persistence
+        // For now, we'll just check session storage
+        var savedUser = await GetStoredUser();
+        if (savedUser != null)
+        {
+            currentUser = savedUser;
+            isAuthenticated = true;
+        }
+    }
+    
+    private async Task Login()
+    {
+        if (string.IsNullOrWhiteSpace(loginUsername) || string.IsNullOrWhiteSpace(loginPassword))
+        {
+            statusMessage = "Please enter username and password";
+            return;
+        }
+        
+        try
+        {
+            // Get all users and find matching credentials
+            var allUsers = await UserService.GetAllAsync();
+            var user = allUsers.FirstOrDefault(u => 
+                u.UserName == loginUsername && 
+                u.Password == loginPassword); // Note: In real apps, hash passwords!
+            
+            if (user == null)
+            {
+                statusMessage = "Invalid username or password";
+                return;
+            }
+            
+            // Login successful
+            currentUser = user;
+            isAuthenticated = true;
+            statusMessage = "";
+            
+            // Store user in session/local storage
+            await StoreUser(user);
+            
+            // Redirect to home or Events
+            Navigation.NavigateTo($"/event?userId={user.Id}&userName={user.UserName}");
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Login failed: {ex.Message}";
+        }
+    }
+    
+    private async Task Register()
+    {
+        // Validation
+        if (string.IsNullOrWhiteSpace(registerUsername) || 
+            string.IsNullOrWhiteSpace(registerPassword) || 
+            string.IsNullOrWhiteSpace(registerEmail))
+        {
+            statusMessage = "Username, password, and email are required";
+            return;
+        }
+        
+        if (registerPassword != registerConfirmPassword)
+        {
+            statusMessage = "Passwords do not match";
+            return;
+        }
+        
+        
+        try
+        {
+            // Check if username already exists
+            var allUsers = await UserService.GetAllAsync();
+            if (allUsers.Any(u => u.UserName == registerUsername))
+            {
+                statusMessage = "Username already exists";
+                return;
+            }
+            
+            if (allUsers.Any(u => u.Email == registerEmail))
+            {
+                statusMessage = "Email already registered";
+                return;
+            }
+            
+            // Create new user
+            var newUser = new CreateUserDto(
+                0,
+                registerUsername,
+                registerPassword,
+                registerEmail,
+                registerFirstName,
+                registerLastName,
+                registerGroupId);
+            
+            await UserService.CreateAsync(newUser);
+            
+            // Auto-login after registration
+            loginUsername = registerUsername;
+            loginPassword = registerPassword;
+            await Login();
+            
+            // Clear registration form
+            registerUsername = "";
+            registerPassword = "";
+            registerConfirmPassword = "";
+            registerEmail = "";
+            registerFirstName = "";
+            registerLastName = "";
+            registerGroupId = 0;
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Registration failed: {ex.Message}";
+        }
+    }
+    
+    private async Task Logout()
+    {
+        currentUser = null;
+        isAuthenticated = false;
+        await ClearStoredUser();
+        Navigation.NavigateTo("/login", forceLoad: true);
+    }
+    
+    // Helper methods for authentication persistence
+    private async Task StoreUser(UserDto user)
+    {
+        // Use the StorageHelper you injected
+        await Storage.SetItem("isLoggedIn", "true");
+        await Storage.SetItem("userId", user.Id.ToString());
+        await Storage.SetItem("userName", user.UserName);
+        await Storage.SetItem("userEmail", user.Email ?? "");
+    }
+
+    private async Task<UserDto?> GetStoredUser()
+    {
+        try
+        {
+            // Use StorageHelper to get items
+            var isLoggedIn = await Storage.GetItem("isLoggedIn");
+            if (isLoggedIn == "true")
+            {
+                var userId = await Storage.GetItem("userId");
+                var userName = await Storage.GetItem("userName");
+            
+                if (!string.IsNullOrEmpty(userId) && !string.IsNullOrEmpty(userName))
+                {
+                    // Create a basic user object with the stored info
+                    return new UserDto(
+                        int.Parse(userId),
+                        userName,
+                        "", // Don't store password
+                        "", // Email might be stored separately
+                        "", // First name
+                        "", // Last name
+                        0   // Group ID
+                    );
+                }
+            }
+        }
+        catch
+        {
+            // If anything fails, return null (user not logged in)
+        }
+        return null;
+    }
+
+    private async Task ClearStoredUser()
+    {
+        // Use StorageHelper to remove items
+        await Storage.RemoveItem("isLoggedIn");
+        await Storage.RemoveItem("userId");
+        await Storage.RemoveItem("userName");
+        await Storage.RemoveItem("userEmail");
+    }
+    
+}
