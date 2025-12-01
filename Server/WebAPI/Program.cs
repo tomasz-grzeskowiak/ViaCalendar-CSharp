@@ -15,6 +15,7 @@ builder.Services.AddEndpointsApiExplorer();
 //add more services
 builder.Services.AddScoped<EventServiceProto>();
 builder.Services.AddScoped<UserServiceProto>();
+builder.Services.AddScoped<GroupServiceProto>();
 builder.Services.AddScoped<IEventService, EventService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IGroupService, GroupService>();
