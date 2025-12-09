@@ -16,7 +16,7 @@ public class UserController : ControllerBase
         _userService = userService;
     } 
 
-    // GET /eventEntity
+    // GET /userEntity
     [HttpGet]
     public async Task<ActionResult> GetCompanies()
     {
@@ -28,7 +28,7 @@ public class UserController : ControllerBase
         return Ok(usersDto);
     }
 
-    // POST /eventEntity
+    // POST /userEntity
     [HttpPost]
     public async Task<ActionResult> CreateUser([FromBody] CreateUserDto dto)
     {
@@ -46,7 +46,7 @@ public class UserController : ControllerBase
         return CreatedAtAction(nameof(CreateUser), new { nameof=dto.UserName, dto.Password, dto.Email, dto.FirstName, dto.LastName }, dto);
     }
 
-    // PUT /eventEntity
+    // PUT /userEntity
     [HttpPut]
     public async Task<ActionResult> UpdateUser([FromBody] CreateUserDto dto)
     {
@@ -63,15 +63,15 @@ public class UserController : ControllerBase
         await _userService.UpdateAsync(userEntity);
         return NoContent();
     }
-    // GET /event/{id}
+    // GET /user/{id}
     [HttpGet("{id}")]
-    public async Task<ActionResult<CreateUserDto>> GetSingleEventAsync(int id)
+    public async Task<ActionResult<CreateUserDto>> GetSingleUserAsync(int id)
     {
         var _user = await _userService.GetSingleAsync(id);
 
         return Ok(new CreateUserDto(_user.Id, _user.UserName, _user.Password, _user.Email, _user.FirstName, _user.LastName, _user.GroupId));
     }
-    // DELETE /event/{id}
+    // DELETE /user/{id}
     [HttpDelete("{id}")]
     public async Task<ActionResult> DeleteCompanyAsync(int id)
     {

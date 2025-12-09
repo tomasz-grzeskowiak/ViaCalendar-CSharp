@@ -16,7 +16,7 @@ public class GroupController : ControllerBase
         _groupService = groupService;
     } 
 
-    // GET /eventEntity
+    // GET /groupEntity
     [HttpGet]
     public async Task<ActionResult> GetCompanies()
     {
@@ -28,7 +28,7 @@ public class GroupController : ControllerBase
         return Ok(groupsDto);
     }
 
-    // POST /eventEntity
+    // POST /groupEntity
     [HttpPost]
     public async Task<ActionResult> CreateGroup([FromBody] CreateGroupDto dto)
     {
@@ -41,7 +41,7 @@ public class GroupController : ControllerBase
         return CreatedAtAction(nameof(CreateGroup), new { nameof=dto.Name }, dto);
     }
 
-    // PUT /eventEntity
+    // PUT /groupEntity
     [HttpPut]
     public async Task<ActionResult> UpdateGroup([FromBody] CreateGroupDto dto)
     {
@@ -53,15 +53,15 @@ public class GroupController : ControllerBase
         await _groupService.UpdateAsync(groupEntity);
         return NoContent();
     }
-    // GET /event/{id}
+    // GET /group/{id}
     [HttpGet("{id}")]
-    public async Task<ActionResult<CreateGroupDto>> GetSingleEventAsync(int id)
+    public async Task<ActionResult<CreateGroupDto>> GetSingleGroupAsync(int id)
     {
         var _group = await _groupService.GetSingleAsync(id);
 
         return Ok(new CreateGroupDto(_group.Id, _group.Name));
     }
-    // DELETE /event/{id}
+    // DELETE /group/{id}
     [HttpDelete("{id}")]
     public async Task<ActionResult> DeleteCompanyAsync(int id)
     {
