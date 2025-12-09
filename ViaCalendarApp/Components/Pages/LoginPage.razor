@@ -120,9 +120,6 @@ else
     
     private async Task CheckAuthentication()
     {
-        // Check if user is stored in local storage or session
-        // You can implement your own authentication state persistence
-        // For now, we'll just check session storage
         var savedUser = await GetStoredUser();
         if (savedUser != null)
         {
@@ -145,7 +142,7 @@ else
             var allUsers = await UserService.GetAllAsync();
             var user = allUsers.FirstOrDefault(u => 
                 u.UserName == loginUsername && 
-                u.Password == loginPassword); // Note: In real apps, hash passwords!
+                u.Password == loginPassword);
             
             if (user == null)
             {
@@ -162,7 +159,7 @@ else
             await StoreUser(user);
             
             // Redirect to home or Events
-            Navigation.NavigateTo($"/event?userId={user.Id}&userName={user.UserName}");
+            Navigation.NavigateTo($"/event");
         }
         catch (Exception ex)
         {
@@ -216,10 +213,9 @@ else
             
             await UserService.CreateAsync(newUser);
             
-            // Auto-login after registration
+            // Try to login after registration
             loginUsername = registerUsername;
             loginPassword = registerPassword;
-            await Login();
             
             // Clear registration form
             registerUsername = "";
@@ -229,10 +225,41 @@ else
             registerFirstName = "";
             registerLastName = "";
             registerGroupId = 0;
+            
+            // Try to login
+            await Login();
         }
         catch (Exception ex)
         {
-            statusMessage = $"Registration failed: {ex.Message}";
+            // Handle the specific database sequence error
+            if (ex.Message.Contains("duplicate key") || 
+                ex.Message.Contains("users_pkey") || 
+                ex.Message.Contains("user_id"))
+            {
+                statusMessage = "Registration failed due to database issue. The user might have been created. Try logging in.";
+                
+                // Even though registration failed, the user might have been created
+                // Try to login anyway
+                Console.WriteLine($"Database sequence error, trying to login anyway...");
+                loginUsername = registerUsername;
+                loginPassword = registerPassword;
+                
+                // Clear registration form
+                registerUsername = "";
+                registerPassword = "";
+                registerConfirmPassword = "";
+                registerEmail = "";
+                registerFirstName = "";
+                registerLastName = "";
+                registerGroupId = 0;
+                
+                // Try to login
+                await Login();
+            }
+            else
+            {
+                statusMessage = $"Registration failed: {ex.Message}";
+            }
         }
     }
     
@@ -247,7 +274,6 @@ else
     // Helper methods for authentication persistence
     private async Task StoreUser(UserDto user)
     {
-        // Use the StorageHelper you injected
         await Storage.SetItem("isLoggedIn", "true");
         await Storage.SetItem("userId", user.Id.ToString());
         await Storage.SetItem("userName", user.UserName);
@@ -258,7 +284,6 @@ else
     {
         try
         {
-            // Use StorageHelper to get items
             var isLoggedIn = await Storage.GetItem("isLoggedIn");
             if (isLoggedIn == "true")
             {
@@ -267,7 +292,6 @@ else
             
                 if (!string.IsNullOrEmpty(userId) && !string.IsNullOrEmpty(userName))
                 {
-                    // Create a basic user object with the stored info
                     return new UserDto(
                         int.Parse(userId),
                         userName,
@@ -289,7 +313,6 @@ else
 
     private async Task ClearStoredUser()
     {
-        // Use StorageHelper to remove items
         await Storage.RemoveItem("isLoggedIn");
         await Storage.RemoveItem("userId");
         await Storage.RemoveItem("userName");

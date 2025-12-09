@@ -1,3 +1,3 @@
 ﻿namespace APIContracts.DTOs.Event;
 
-public record CreateEventDto(int Id,string Name, string Tag, bool Recursive, int CreatorId);
+public record CreateEventDto(int Id,string Name, string Tag, bool Recursive, int CreatorId, DateTime? Duration, string TypeOfRecursive);

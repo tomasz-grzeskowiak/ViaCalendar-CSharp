@@ -1,61 +1,448 @@
 ﻿@page "/group"
 @using APIContracts.DTOs.Group
+@using APIContracts.DTOs.User
 @using ViaCalendarApp.Services
+@using ViaCalendarApp.Helper
 @inject GroupServiceClient GroupService
+@inject UserServiceClient UserService
+@inject StorageHelper Storage
+@inject NavigationManager Navigation
 @rendermode InteractiveServer
-<h3>Group</h3>
 
+<h3>Groups</h3>
 
-<p>@statusMessage</p>
-
-<button class="btn btn-primary mb-2" @onclick="LoadGroups">Load Groups</button>
-
-@if (groups != null)
+@if (!isAuthenticated)
 {
-    <ul class="list-group mb-3">
-        @foreach (var gr in groups)
-        {
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-                <span>@gr.Name</span>
-                <span>
-                    <button class="btn btn-sm btn-warning me-1" @onclick="() => StartEdit(gr)">Edit</button>
-                    <button class="btn btn-sm btn-danger" @onclick="() => DeleteGroup(gr.Id)">Delete</button>
-                </span>
-            </li>
-        }
-    </ul>
+    <div class="alert alert-warning">
+        <p>You need to <a href="/login">login</a> to view and manage groups.</p>
+    </div>
 }
+else
+{
+    <div class="alert alert-info mb-3">
+        <p>Welcome, @currentUserName! (User ID: @currentUserId)</p>
+    </div>
 
-<h4>@(editingGroup is null ? "Add Group" : "Edit Group")</h4>
+    <p>@statusMessage</p>
 
-<div class="mb-3">
-    <label>Group Name:</label>
-    <input class="form-control" @bind="formGroupName" />
-</div>
+    <div class="row">
+        <!-- My Groups Section -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>My Groups</h5>
+                    <button class="btn btn-primary btn-sm" @onclick="LoadMyGroups">Load My Groups</button>
+                </div>
+                <div class="card-body">
+                    @if (myGroups != null && myGroups.Any())
+                    {
+                        <ul class="list-group">
+                            @foreach (var gr in myGroups)
+                            {
+                                <li class="list-group-item">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <strong>@gr.Name</strong>
+                                            <br/>
+                                            <small class="text-muted">
+                                                Members: @(GetGroupMemberCount(gr.Id)) |
+                                                <button class="btn btn-sm btn-outline-info" @onclick="() => ShowGroupDetails(gr)">
+                                                    @(selectedGroup?.Id == gr.Id ? "Hide Details" : "Show Details")
+                                                </button>
+                                            </small>
+                                        </div>
+                                        <div>
+                                            <button class="btn btn-sm btn-warning me-1" @onclick="() => StartEdit(gr)">Edit</button>
+                                            <button class="btn btn-sm btn-danger" @onclick="() => DeleteGroup(gr.Id)">Delete</button>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Group Details (shown when clicked) -->
+                                    @if (selectedGroup?.Id == gr.Id)
+                                    {
+                                        <div class="mt-2 p-2 border rounded">
+                                            <h6>Group Members</h6>
+                                            @{
+                                                var members = GetGroupMembers(gr.Id);
+                                            }
+                                            @if (members.Any())
+                                            {
+                                                <ul class="list-unstyled">
+                                                    @foreach (var member in members)
+                                                    {
+                                                        <li>
+                                                            @member.UserName 
+                                                            @if (member.Id == currentUserId)
+                                                            {
+                                                                <span class="badge bg-primary">You</span>
+                                                            }
+                                                        </li>
+                                                    }
+                                                </ul>
+                                            }
+                                            else
+                                            {
+                                                <p>No members yet.</p>
+                                            }
+                                            
+                                            <!-- Invite User Section -->
+                                            <div class="mt-2">
+                                                <h6>Invite User to Group</h6>
+                                                <div class="input-group mb-2">
+                                                    <select class="form-select" @bind="selectedUserToInvite">
+                                                        <option value="">Select a user...</option>
+                                                        @foreach (var user in allUsers.Where(u => u.Id != currentUserId && !IsUserInGroup(gr.Id, u.Id)))
+                                                        {
+                                                            <option value="@user.Id">@user.UserName (@user.Email)</option>
+                                                        }
+                                                    </select>
+                                                    <button class="btn btn-success" @onclick="() => InviteUserToGroup(gr.Id)" 
+                                                            disabled="@(string.IsNullOrEmpty(selectedUserToInvite))">
+                                                        Invite
+                                                    </button>
+                                                </div>
+                                                <small class="text-muted">
+                                                    Or enter username: 
+                                                    <input class="form-control form-control-sm d-inline-block w-auto" 
+                                                           @bind="inviteUsername" 
+                                                           placeholder="Username" />
+                                                    <button class="btn btn-sm btn-outline-secondary" @onclick="() => InviteByUsername(gr.Id)">
+                                                        Invite by Username
+                                                    </button>
+                                                </small>
+                                            </div>
+                                        </div>
+                                    }
+                                </li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <p>You are not in any groups yet. Create one below!</p>
+                    }
+                </div>
+            </div>
+        </div>
 
-<button class="btn btn-success me-1" @onclick="SaveGroup">Save</button>
-<button class="btn btn-secondary" @onclick="CancelEdit">Cancel</button>
+        <!-- Invitations Section -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>My Invitations</h5>
+                    <button class="btn btn-primary btn-sm" @onclick="LoadInvitations">Refresh Invitations</button>
+                </div>
+                <div class="card-body">
+                    @if (pendingInvitations != null && pendingInvitations.Any())
+                    {
+                        <ul class="list-group">
+                            @foreach (var inv in pendingInvitations)
+                            {
+                                <li class="list-group-item">
+                                    <div>
+                                        <strong>Invitation to join: @inv.GroupName</strong>
+                                        <br/>
+                                        <small class="text-muted">
+                                            From: @(GetUserName(inv.InvitedByUserId) ?? $"User {inv.InvitedByUserId}") |
+                                            Sent: @inv.InvitedDate.ToString("g")
+                                        </small>
+                                    </div>
+                                    <div class="mt-2">
+                                        <button class="btn btn-sm btn-success me-1" @onclick="() => AcceptInvitation(inv)">
+                                            Accept
+                                        </button>
+                                        <button class="btn btn-sm btn-danger" @onclick="() => DeclineInvitation(inv.Id)">
+                                            Decline
+                                        </button>
+                                    </div>
+                                </li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <p>No pending invitations.</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
 
+    <!-- Create/Edit Group Form -->
+    <div class="card mt-3">
+        <div class="card-header">
+            <h4>@(editingGroup is null ? "Create New Group" : "Edit Group")</h4>
+        </div>
+        <div class="card-body">
+            <div class="mb-3">
+                <label class="form-label">Group Name *</label>
+                <input class="form-control" @bind="formGroupName" />
+            </div>
+            
+            <div class="d-flex gap-2">
+                <button class="btn btn-success" @onclick="SaveGroup">
+                    @(editingGroup is null ? "Create Group" : "Update Group")
+                </button>
+                @if (editingGroup != null)
+                {
+                    <button class="btn btn-secondary" @onclick="CancelEdit">Cancel</button>
+                }
+            </div>
+        </div>
+    </div>
+}
 
 @code {
     private List<GroupDto>? groups;
-    private string statusMessage = "Click 'Load Groups' to fetch data.";
+    private List<GroupDto>? myGroups;
+    private List<GroupInvitationDto>? pendingInvitations;
+    private List<UserDto>? allUsers = new();
+    private string statusMessage = "";
     private int groupId;
+    private bool isAuthenticated = false;
+    private int currentUserId = 0;
+    private string currentUserName = "";
 
     private GroupDto? editingGroup = null;
+    private GroupDto? selectedGroup = null;
     private string formGroupName = "";
+    private string inviteUsername = "";
+    private string selectedUserToInvite = "";
+    
+
+    // Store group members in localStorage (simulated)
+    private Dictionary<int, List<int>> groupMembers = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CheckAuthentication();
+        if (isAuthenticated)
+        {
+            await LoadAllData();
+        }
+    }
+
+    private async Task LoadAllData()
+    {
+        await LoadGroups();
+        await LoadAllUsers();
+        await LoadGroupMembersFromStorage();
+        await LoadInvitations();
+    }
+
+    private async Task CheckAuthentication()
+    {
+        try
+        {
+            var isLoggedIn = await Storage.GetItem("isLoggedIn");
+            var storedUserId = await Storage.GetItem("userId");
+            var storedUserName = await Storage.GetItem("userName");
+        
+            if (isLoggedIn == "true" && !string.IsNullOrEmpty(storedUserId))
+            {
+                isAuthenticated = true;
+                currentUserId = int.Parse(storedUserId);
+                currentUserName = storedUserName ?? $"User {storedUserId}";
+                statusMessage = "";
+            }
+            else
+            {
+                isAuthenticated = false;
+                statusMessage = "Please login to view and manage groups.";
+            }
+        }
+        catch (Exception ex)
+        {
+            isAuthenticated = false;
+            statusMessage = $"Authentication error: {ex.Message}";
+        }
+    }
 
     private async Task LoadGroups()
     {
         try
         {
             groups = await GroupService.GetAllAsync();
-            statusMessage = $"Loaded {groups.Count} groups.";
+            statusMessage = $"Loaded {groups?.Count ?? 0} groups.";
+            
+            // Filter groups where current user is a member
+            myGroups = groups?
+                .Where(g => IsUserInGroup(g.Id, currentUserId))
+                .ToList();
         }
         catch (Exception ex)
         {
             statusMessage = $"Error loading groups: {ex.Message}";
         }
+    }
+
+    private async Task LoadAllUsers()
+    {
+        try
+        {
+            allUsers = await UserService.GetAllAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading users: {ex.Message}");
+        }
+    }
+
+    private async Task LoadMyGroups()
+    {
+        await LoadGroups();
+    }
+
+    private async Task LoadInvitations()
+    {
+        try
+        {
+            pendingInvitations = await GetPendingInvitationsForUser(currentUserId);
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Error loading invitations: {ex.Message}";
+        }
+    }
+
+    // Group Members Management (Frontend simulation)
+    private async Task LoadGroupMembersFromStorage()
+    {
+        try
+        {
+            var membersJson = await Storage.GetItem("groupMembers");
+            if (!string.IsNullOrEmpty(membersJson))
+            {
+                groupMembers = System.Text.Json.JsonSerializer.Deserialize<Dictionary<int, List<int>>>(membersJson) 
+                    ?? new Dictionary<int, List<int>>();
+            }
+            
+            // Ensure current user is in their own created groups
+            foreach (var group in groups ?? new List<GroupDto>())
+            {
+                await EnsureUserInGroup(group.Id, currentUserId);
+            }
+        }
+        catch
+        {
+            groupMembers = new Dictionary<int, List<int>>();
+        }
+    }
+
+    private async Task SaveGroupMembersToStorage()
+    {
+        try
+        {
+            var json = System.Text.Json.JsonSerializer.Serialize(groupMembers);
+            await Storage.SetItem("groupMembers", json);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error saving group members: {ex.Message}");
+        }
+    }
+
+    private async Task EnsureUserInGroup(int groupId, int userId)
+    {
+        if (!groupMembers.ContainsKey(groupId))
+        {
+            groupMembers[groupId] = new List<int>();
+        }
+        
+        if (!groupMembers[groupId].Contains(userId))
+        {
+            // If user created the group, add them automatically
+            groupMembers[groupId].Add(userId);
+            await SaveGroupMembersToStorage();
+        }
+    }
+
+    private async Task AddUserToGroup(int groupId, int userId)
+    {
+        await EnsureUserInGroup(groupId, userId);
+    }
+
+    private bool IsUserInGroup(int groupId, int userId)
+    {
+        return groupMembers.ContainsKey(groupId) && groupMembers[groupId].Contains(userId);
+    }
+
+    private List<UserDto> GetGroupMembers(int groupId)
+    {
+        var members = new List<UserDto>();
+        if (groupMembers.ContainsKey(groupId))
+        {
+            foreach (var userId in groupMembers[groupId])
+            {
+                var user = allUsers?.FirstOrDefault(u => u.Id == userId);
+                if (user != null)
+                {
+                    members.Add(user);
+                }
+            }
+        }
+        return members;
+    }
+
+    private int GetGroupMemberCount(int groupId)
+    {
+        return groupMembers.ContainsKey(groupId) ? groupMembers[groupId].Count : 0;
+    }
+
+    // Invitation Management (Frontend simulation)
+    private async Task<List<GroupInvitationDto>> GetPendingInvitationsForUser(int userId)
+    {
+        try
+        {
+            var invitationsJson = await Storage.GetItem($"invitations_{userId}");
+            if (!string.IsNullOrEmpty(invitationsJson))
+            {
+                var allInvitations = System.Text.Json.JsonSerializer.Deserialize<List<GroupInvitationDto>>(invitationsJson) 
+                    ?? new List<GroupInvitationDto>();
+                return allInvitations.Where(i => i.Status == "Pending").ToList();
+            }
+        }
+        catch
+        {
+            // Ignore errors
+        }
+        return new List<GroupInvitationDto>();
+    }
+
+    private async Task SaveInvitation(GroupInvitationDto invitation)
+    {
+        try
+        {
+            // Get existing invitations for the invited user
+            var invitations = await GetPendingInvitationsForUser(invitation.InvitedUserId);
+            
+            // Add all invitations (including accepted/declined for history)
+            var allInvitationsJson = await Storage.GetItem($"invitations_{invitation.InvitedUserId}");
+            var allInvitations = string.IsNullOrEmpty(allInvitationsJson) 
+                ? new List<GroupInvitationDto>() 
+                : System.Text.Json.JsonSerializer.Deserialize<List<GroupInvitationDto>>(allInvitationsJson);
+            
+            allInvitations ??= new List<GroupInvitationDto>();
+            
+            // Remove old invitation with same ID if exists
+            allInvitations.RemoveAll(i => i.Id == invitation.Id);
+            
+            // Add new invitation
+            allInvitations.Add(invitation);
+            
+            // Save back
+            var json = System.Text.Json.JsonSerializer.Serialize(allInvitations);
+            await Storage.SetItem($"invitations_{invitation.InvitedUserId}", json);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error saving invitation: {ex.Message}");
+        }
+    }
+
+    private void ShowGroupDetails(GroupDto group)
+    {
+        selectedGroup = selectedGroup?.Id == group.Id ? null : group;
     }
 
     private void StartEdit(GroupDto gr)
@@ -76,27 +463,38 @@
     {
         if (string.IsNullOrWhiteSpace(formGroupName))
         {
-            statusMessage = "Some fields are empty.";
+            statusMessage = "Group name is required.";
             return;
         }
 
         try
         {
-            var dto = new GroupDto(0, formGroupName);
-
             if (editingGroup == null)
             {
-                await GroupService.CreateAsync(new CreateGroupDto(0,dto.Name));
-                statusMessage = $"Group '{dto.Name}'  created.";
+                // Create new group
+                var createDto = new CreateGroupDto(0, formGroupName);
+                await GroupService.CreateAsync(createDto);
+                statusMessage = $"Group '{formGroupName}' created successfully.";
+                
+                // Reload groups to get the new group with its ID
+                await LoadGroups();
+                
+                // Find the newly created group and add current user as member
+                var newGroup = groups?.FirstOrDefault(g => g.Name == formGroupName);
+                if (newGroup != null)
+                {
+                    await AddUserToGroup(newGroup.Id, currentUserId);
+                }
             }
-
-            if (editingGroup != null)
+            else
             {
-                await GroupService.UpdateAsync(new CreateGroupDto(dto.Id, dto.Name));
-                statusMessage = $"Group '{dto.Name}' updated.";
+                // Update existing group
+                var updateDto = new CreateGroupDto(groupId, formGroupName);
+                await GroupService.UpdateAsync(updateDto);
+                statusMessage = $"Group '{formGroupName}' updated successfully.";
             }
 
-            await LoadGroups();
+            await LoadAllData();
             CancelEdit();
         }
         catch (Exception ex)
@@ -104,17 +502,165 @@
             statusMessage = $"Error saving group: {ex.Message}";
         }
     }
+
     private async Task DeleteGroup(int id)
     {
         try
         {
             await GroupService.DeleteAsync(id);
-            statusMessage = $"Group with ID '{id}' deleted.";
-            await LoadGroups();
+            statusMessage = $"Group deleted successfully.";
+            
+            // Remove from local storage
+            if (groupMembers.ContainsKey(id))
+            {
+                groupMembers.Remove(id);
+                await SaveGroupMembersToStorage();
+            }
+            
+            await LoadAllData();
         }
         catch (Exception ex)
         {
-            statusMessage = $"Error deleting company: {ex.Message}";
+            statusMessage = $"Error deleting group: {ex.Message}";
         }
+    }
+
+    private async Task InviteUserToGroup(int groupId)
+    {
+        if (string.IsNullOrEmpty(selectedUserToInvite))
+        {
+            statusMessage = "Please select a user to invite.";
+            return;
+        }
+
+        if (!int.TryParse(selectedUserToInvite, out int invitedUserId))
+        {
+            statusMessage = "Invalid user selected.";
+            return;
+        }
+
+        await InviteUser(groupId, invitedUserId);
+    }
+
+    private async Task InviteByUsername(int groupId)
+    {
+        if (string.IsNullOrWhiteSpace(inviteUsername))
+        {
+            statusMessage = "Please enter a username.";
+            return;
+        }
+
+        var user = allUsers?.FirstOrDefault(u => u.UserName == inviteUsername);
+        if (user == null)
+        {
+            statusMessage = $"User '{inviteUsername}' not found.";
+            return;
+        }
+
+        await InviteUser(groupId, user.Id);
+        inviteUsername = "";
+    }
+
+    private async Task InviteUser(int groupId, int invitedUserId)
+    {
+        try
+        {
+            var group = groups?.FirstOrDefault(g => g.Id == groupId);
+            if (group == null)
+            {
+                statusMessage = "Group not found.";
+                return;
+            }
+
+            if (invitedUserId == currentUserId)
+            {
+                statusMessage = "You cannot invite yourself to a group.";
+                return;
+            }
+
+            if (IsUserInGroup(groupId, invitedUserId))
+            {
+                statusMessage = "User is already in this group.";
+                return;
+            }
+
+            // Check if invitation already exists
+            var existingInvitations = await GetPendingInvitationsForUser(invitedUserId);
+            if (existingInvitations.Any(i => i.GroupId == groupId))
+            {
+                statusMessage = "Invitation already sent to this user.";
+                return;
+            }
+
+            // Create invitation
+            var invitation = new GroupInvitationDto
+            {
+                Id = new Random().Next(1000, 9999),
+                GroupId = groupId,
+                GroupName = group.Name,
+                InvitedUserId = invitedUserId,
+                InvitedByUserId = currentUserId,
+                InvitedDate = DateTime.Now,
+                Status = "Pending"
+            };
+
+            await SaveInvitation(invitation);
+            statusMessage = $"Invitation sent to {GetUserName(invitedUserId)}.";
+            selectedUserToInvite = "";
+            
+            await LoadInvitations();
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Error inviting user: {ex.Message}";
+        }
+    }
+
+    private async Task AcceptInvitation(GroupInvitationDto invitation)
+    {
+        try
+        {
+            // Add user to group
+            await AddUserToGroup(invitation.GroupId, invitation.InvitedUserId);
+            
+            // Update invitation status
+            invitation.Status = "Accepted";
+            await SaveInvitation(invitation);
+            
+            statusMessage = $"You have joined the group '{invitation.GroupName}'.";
+            await LoadAllData();
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Error accepting invitation: {ex.Message}";
+        }
+    }
+
+    private async Task DeclineInvitation(int invitationId)
+    {
+        try
+        {
+            // Find the invitation
+            var invitations = await GetPendingInvitationsForUser(currentUserId);
+            var invitation = invitations.FirstOrDefault(i => i.Id == invitationId);
+            
+            if (invitation != null)
+            {
+                invitation.Status = "Declined";
+                await SaveInvitation(invitation);
+                
+                statusMessage = "Invitation declined.";
+                await LoadInvitations();
+            }
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Error declining invitation: {ex.Message}";
+        }
+    }
+
+    private string? GetUserName(int userId)
+    {
+        return allUsers?.FirstOrDefault(u => u.Id == userId)?.UserName;
     }
 }

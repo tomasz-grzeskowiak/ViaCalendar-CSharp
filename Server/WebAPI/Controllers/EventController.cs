@@ -22,7 +22,7 @@ public class EventController : ControllerBase
     {
         var eventsList = _eventService.GetManyAsync();
         var eventsDto = eventsList
-            .Select(e => new EventDto(e.Id,e.Name, e.Tag, e.Recursive, e.CreatorId))
+            .Select(e => new EventDto(e.Id,e.Name, e.Tag, e.Recursive, e.CreatorId, e.Duration, e.TypeOfRecursive))
             .ToList();
 
         return Ok(eventsDto);
@@ -38,10 +38,12 @@ public class EventController : ControllerBase
             .SetRecursive(dto.Recursive)
             .SetTag(dto.Tag)
             .SetCreatorId(dto.CreatorId)
+            .SetDuration(dto.Duration)
+            .SetTypeOfRecursive(dto.TypeOfRecursive)
             .Build();
 
         await _eventService.CreateAsync(eventEntity);
-        return CreatedAtAction(nameof(CreateEvent), new { nameof=dto.Name, dto.Recursive, dto.Tag }, dto);
+        return CreatedAtAction(nameof(CreateEvent), new { nameof=dto.Name, dto.Recursive, dto.Tag, dto.CreatorId, dto.Duration, dto.TypeOfRecursive }, dto);
     }
 
     // PUT /eventEntity
@@ -54,6 +56,8 @@ public class EventController : ControllerBase
             .SetRecursive(dto.Recursive)
             .SetTag(dto.Tag)
             .SetCreatorId(dto.CreatorId)
+            .SetDuration(dto.Duration)
+            .SetTypeOfRecursive(dto.TypeOfRecursive)
             .Build();
 
         await _eventService.UpdateAsync(eventEntity);
@@ -65,7 +69,7 @@ public class EventController : ControllerBase
     {
         var _event = await _eventService.GetSingleAsync(id);
 
-        return Ok(new CreateEventDto(_event.Id, _event.Name, _event.Tag, _event.Recursive,  _event.CreatorId));
+        return Ok(new CreateEventDto(_event.Id, _event.Name, _event.Tag, _event.Recursive,  _event.CreatorId,  _event.Duration, _event.TypeOfRecursive));
     }
     // DELETE /event/{id}
     [HttpDelete("{id}")]

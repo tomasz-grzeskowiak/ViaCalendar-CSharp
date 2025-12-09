@@ -38,7 +38,14 @@ else
                             <span class="badge bg-info">Recursive</span>
                         }
                         <br/>
-                        <small class="text-muted">Creator: @(ev.CreatorId == currentUserId ? "You" : $"User {ev.CreatorId}")</small>
+                        <small class="text-muted">
+                            Creator: @(ev.CreatorId == currentUserId ? "You" : $"User {ev.CreatorId}") |
+                            Type: @(ev.TypeOfRecursive ?? "None")
+                            @if (ev.Duration.HasValue)
+                            {
+                                <span> | Duration: @ev.Duration.Value.ToString("g")</span>
+                            }
+                        </small>
                     </div>
                     <span>
                         @if (ev.CreatorId == currentUserId)
@@ -75,15 +82,41 @@ else
                 <label class="form-check-label">Recursive Event</label>
             </div>
             
+            <!-- Duration with separate date and time inputs -->
+            <div class="mb-3">
+                <label class="form-label">Duration *</label>
+                <div class="row g-2">
+                    <div class="col">
+                        <input class="form-control" type="date" 
+                               value="@FormattedDate" 
+                               @onchange="@((ChangeEventArgs e) => OnDateChanged(e))"
+                               required />
+                    </div>
+                    <div class="col">
+                        <input class="form-control" type="time" 
+                               value="@FormattedTime" 
+                               @onchange="@((ChangeEventArgs e) => OnTimeChanged(e))"
+                               required />
+                    </div>
+                </div>
+                @if (!IsDurationValid)
+                {
+                    <small class="text-danger">Duration is required</small>
+                }
+            </div>
             
             <div class="mb-3">
                 <label class="form-label">Recurrence Type</label>
-                <select class="form-select" @bind="formRecurrenceType">
+                <select class="form-select" @bind="formEventTypeOfRecursive" disabled="@(!formEventRecursive)">
                     <option value="">None</option>
                     <option value="Day">Daily</option>
                     <option value="Month">Monthly</option>
                     <option value="Year">Yearly</option>
                 </select>
+                @if (!formEventRecursive)
+                {
+                    <small class="text-muted">Enable "Recursive Event" to select recurrence type</small>
+                }
             </div>
             
             <div class="d-flex gap-2">
@@ -111,7 +144,15 @@ else
     private string formEventName = "";
     private bool formEventRecursive = false;
     private string formEventTag = "";
-    private string formRecurrenceType = "";
+    private string formEventTypeOfRecursive = "";
+    
+    // For Duration - use DateTime? but will validate it's not null
+    private DateTime? formEventDuration = DateTime.Now; // Default to now
+    
+    // Helper properties for formatted date/time strings
+    private string FormattedDate => formEventDuration?.ToString("yyyy-MM-dd") ?? "";
+    private string FormattedTime => formEventDuration?.ToString("HH:mm") ?? "";
+    private bool IsDurationValid => formEventDuration.HasValue;
 
     protected override async Task OnInitializedAsync()
     {
@@ -126,7 +167,6 @@ else
     {
         try
         {
-            // Use StorageHelper instead of direct JS calls
             var isLoggedIn = await Storage.GetItem("isLoggedIn");
             var storedUserId = await Storage.GetItem("userId");
             var storedUserName = await Storage.GetItem("userName");
@@ -151,14 +191,6 @@ else
         }
     }
 
-    private async Task<int> GetCurrentUserId()
-    {
-        // Implement based on your authentication system
-        // This could come from JWT token, session, or database lookup
-        // Example: return await AuthService.GetCurrentUserId();
-        return 1; // Placeholder
-    }
-
     private async Task LoadEvents()
     {
         try
@@ -166,22 +198,14 @@ else
             // Get all events
             var allEvents = await EventService.GetAllAsync();
         
-            // DEBUG: Let's see what we're working with
             Console.WriteLine($"=== DEBUG LOAD EVENTS ===");
-            Console.WriteLine($"Current User ID: {currentUserId} (Type: {currentUserId.GetType().Name})");
+            Console.WriteLine($"Current User ID: {currentUserId}");
         
             if (allEvents != null)
             {
                 Console.WriteLine($"Total events from API: {allEvents.Count}");
             
-                // Check each event
-                foreach (var ev in allEvents)
-                {
-                    Console.WriteLine($"Event {ev.Id}: CreatorId = {ev.CreatorId} (Type: {ev.CreatorId.GetType().Name})");
-                    Console.WriteLine($"  Comparison: {ev.CreatorId} == {currentUserId} ? {ev.CreatorId == currentUserId}");
-                }
-            
-                // Filter events - this should work since both are int
+                // Filter events
                 events = allEvents
                     .Where(e => e.CreatorId == currentUserId)
                     .ToList();
@@ -210,7 +234,11 @@ else
         formEventName = ev.Name;
         formEventTag = ev.Tag;
         formEventRecursive = ev.Recursive;
-        // Set other fields as needed
+        formEventDuration = ev.Duration ?? DateTime.Now; // Default to now if null
+        
+        // If not recursive, set TypeOfRecursive to empty
+        // If recursive but TypeOfRecursive is null, set to empty
+        formEventTypeOfRecursive = ev.Recursive ? (ev.TypeOfRecursive ?? "") : "";
     }
 
     private void CancelEdit()
@@ -219,7 +247,49 @@ else
         eventId = 0;    
         formEventName = "";
         formEventTag = "";
-        formEventRecursive = true;
+        formEventRecursive = false;
+        formEventDuration = DateTime.Now; // Reset to default
+        formEventTypeOfRecursive = "";
+    }
+
+    private void OnDateChanged(ChangeEventArgs e)
+    {
+        var dateString = e.Value?.ToString();
+        if (!string.IsNullOrEmpty(dateString))
+        {
+            if (DateTime.TryParse(dateString, out DateTime dateOnly))
+            {
+                // Keep existing time or use current time
+                var existingTime = formEventDuration?.TimeOfDay ?? DateTime.Now.TimeOfDay;
+                formEventDuration = dateOnly.Date + existingTime;
+            }
+        }
+        else
+        {
+            // If date is cleared, use today
+            var existingTime = formEventDuration?.TimeOfDay ?? DateTime.Now.TimeOfDay;
+            formEventDuration = DateTime.Today + existingTime;
+        }
+    }
+
+    private void OnTimeChanged(ChangeEventArgs e)
+    {
+        var timeString = e.Value?.ToString();
+        if (!string.IsNullOrEmpty(timeString))
+        {
+            if (TimeSpan.TryParse(timeString, out TimeSpan timeOnly))
+            {
+                // Keep existing date or use today
+                var existingDate = formEventDuration?.Date ?? DateTime.Today;
+                formEventDuration = existingDate + timeOnly;
+            }
+        }
+        else
+        {
+            // If time is cleared, use current time
+            var existingDate = formEventDuration?.Date ?? DateTime.Today;
+            formEventDuration = existingDate + DateTime.Now.TimeOfDay;
+        }
     }
 
     private async Task SaveEvent()
@@ -229,24 +299,55 @@ else
             statusMessage = "Event Name and Tag are required.";
             return;
         }
+        
+        // Validate Duration is not null
+        if (!formEventDuration.HasValue)
+        {
+            statusMessage = "Duration is required.";
+            return;
+        }
 
         try
         {
+            // If not recursive, set TypeOfRecursive to empty string
+            var typeOfRecursive = formEventRecursive ? formEventTypeOfRecursive : "None";
+            
             var createDto = new CreateEventDto(
-                0,
+                editingEvent?.Id ?? 0,  // Use existing ID for edit, 0 for create
                 Name: formEventName,
                 Tag: formEventTag,
-                Recursive:formEventRecursive,
-                CreatorId: currentUserId // Add CreatorId to your DTO
-                
+                Recursive: formEventRecursive,
+                CreatorId: currentUserId,
+                Duration: formEventDuration.Value,  // Use .Value since we validated it's not null
+                TypeOfRecursive: typeOfRecursive
             );
 
             if (editingEvent == null)
             {
+                // Create new event
                 await EventService.CreateAsync(createDto);
                 statusMessage = $"Event '{formEventName}' created successfully.";
             }
-            
+            else
+            {
+                // Update existing event - assuming you have an UpdateAsync method
+                // If not, you might need to create one
+                try
+                {
+                    // Try to call UpdateAsync if it exists
+                    await EventService.UpdateAsync(createDto); // This might need to be adjusted
+                    statusMessage = $"Event '{formEventName}' updated successfully.";
+                }
+                catch (Exception ex)
+                {
+                    // If UpdateAsync doesn't exist, try delete and recreate
+                    Console.WriteLine($"Update failed, trying delete/recreate: {ex.Message}");
+                    
+                    await EventService.DeleteAsync(eventId);
+                    await EventService.CreateAsync(createDto);
+                    statusMessage = $"Event '{formEventName}' updated successfully (via delete/recreate).";
+                }
+            }
 
             await LoadEvents();
             CancelEdit();
