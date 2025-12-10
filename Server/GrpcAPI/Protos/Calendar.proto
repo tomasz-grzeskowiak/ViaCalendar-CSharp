@@ -68,6 +68,10 @@ message CalendarProto{
   int32 userId = 2;
   repeated int32 eventListId= 3;
 }
+message CalendarProtoList
+{
+  repeated CalendarProto calendars= 1;
+}
 message UserProtoList {
   repeated UserProto users = 1;
 }

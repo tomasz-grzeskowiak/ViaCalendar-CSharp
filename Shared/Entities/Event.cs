@@ -8,12 +8,12 @@ public class Event
     public string Tag { get; private set; }
     public bool Recursive { get; private set; }
     public int CreatorId { get; private set; }
-    public DateTime? Duration { get; private set; }  // Added Duration (nullable)
-    public string TypeOfRecursive { get; private set; }  // Added TypeOfRecursive
+    public DateTime? Duration { get; private set; }  
+    public string TypeOfRecursive { get; private set; }  
     
     public int Id { get; set; } = 0;
-
-    // Builder inner class
+    
+    
     public class Builder
     {
         private string _name = "Default Name";
@@ -21,8 +21,8 @@ public class Event
         private string _tag = "Default Tag";
         private bool _recursive;
         private int _creatorId = 0;
-        private DateTime? _duration = null;  // Added Duration
-        private string _typeOfRecursive = "";  // Added TypeOfRecursive
+        private DateTime? _duration = null; 
+        private string _typeOfRecursive = "";  
 
         public Builder SetName(string name)
         {
@@ -62,13 +62,13 @@ public class Event
             return this;
         }
 
-        public Builder SetDuration(DateTime? duration)  // Added SetDuration
+        public Builder SetDuration(DateTime? duration)  
         {
             _duration = duration;
             return this;
         }
 
-        public Builder SetTypeOfRecursive(string typeOfRecursive)  // Added SetTypeOfRecursive
+        public Builder SetTypeOfRecursive(string typeOfRecursive)  
         {
             _typeOfRecursive = typeOfRecursive ?? "";
             return this;
@@ -83,8 +83,8 @@ public class Event
                 Tag = _tag,
                 Recursive = _recursive,
                 CreatorId = _creatorId,
-                Duration = _duration,  // Set Duration
-                TypeOfRecursive = _typeOfRecursive  // Set TypeOfRecursive
+                Duration = _duration,  
+                TypeOfRecursive = _typeOfRecursive  
             };
         }
     }
