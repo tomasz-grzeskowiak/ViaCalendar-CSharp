@@ -1,0 +1,516 @@
+﻿@page "/calendar"
+@using APIContracts.DTOs.Calendar
+@using APIContracts.DTOs.Event
+@using ViaCalendarApp.Services
+@inject CalendarServiceClient CalendarService
+@inject EventServiceClient EventService
+@inject NavigationManager Navigation
+@using ViaCalendarApp.Helper
+@inject StorageHelper Storage
+@rendermode InteractiveServer
+
+<h3>Calendar Test with Existing Events</h3>
+
+@if (!isAuthenticated)
+{
+    <div class="alert alert-warning">
+        <p>You need to <a href="/login">login</a> first.</p>
+    </div>
+}
+else
+{
+    <div class="alert alert-info mb-3">
+        <p>Testing Calendar with Your Existing Events</p>
+        <p>Current User ID: @currentUserId</p>
+        <small><a href="/event" target="_blank">Go to Events Page</a> to create events first</small>
+    </div>
+
+    <!-- Step 1: Load Existing Events -->
+    <div class="card mb-3">
+        <div class="card-header">
+            <h5>Step 1: Select Your Existing Events</h5>
+        </div>
+        <div class="card-body">
+            <button class="btn btn-primary me-2" @onclick="LoadMyEvents">Load My Events</button>
+            <button class="btn btn-secondary" @onclick="LoadAllEvents">Load All Events</button>
+            
+            @if (availableEvents != null && availableEvents.Any())
+            {
+                <div class="mt-3">
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="showAllEvents" @bind="showAllEventsToggle" />
+                        <label class="form-check-label" for="showAllEvents">
+                            Show all events (not just mine)
+                        </label>
+                    </div>
+                    
+                    <h6>Available Events (@availableEvents.Count):</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Select</th>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Tag</th>
+                                    <th>Creator</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var ev in availableEvents)
+                                {
+                                    <tr>
+                                        <td>
+                                            @if (selectedEventIds.Contains(ev.Id))
+                                            {
+                                                <button class="btn btn-sm btn-danger" 
+                                                        @onclick="() => RemoveEventFromSelection(ev.Id)">
+                                                    Remove
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <button class="btn btn-sm btn-success" 
+                                                        @onclick="() => AddEventToSelection(ev.Id)">
+                                                    Add
+                                                </button>
+                                            }
+                                        </td>
+                                        <td>@ev.Id</td>
+                                        <td>@ev.Name</td>
+                                        <td>@ev.Tag</td>
+                                        <td>
+                                            @if (ev.CreatorId == currentUserId)
+                                            {
+                                                <span class="badge bg-primary">You</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">User @ev.CreatorId</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            }
+            else if (availableEvents != null)
+            {
+                <div class="alert alert-warning mt-3">
+                    No events found. <a href="/event" target="_blank">Create some events first</a>.
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Step 2: Selected Events & Calendar Operations -->
+    <div class="card mb-3">
+        <div class="card-header">
+            <h5>Step 2: Calendar Operations</h5>
+        </div>
+        <div class="card-body">
+            <div class="mb-3">
+                <label class="form-label">Selected Event IDs:</label>
+                <div class="d-flex flex-wrap gap-2 mb-3">
+                    @foreach (var eventId in selectedEventIds)
+                    {
+                        var eventName = availableEvents?.FirstOrDefault(e => e.Id == eventId)?.Name ?? $"Event {eventId}";
+                        <span class="badge bg-primary p-2">
+                            @eventName (ID: @eventId)
+                            <button class="btn-close btn-close-white ms-2" 
+                                    style="font-size: 0.5rem;"
+                                    @onclick="() => RemoveEventFromSelection(eventId)"></button>
+                        </span>
+                    }
+                    @if (!selectedEventIds.Any())
+                    {
+                        <span class="text-muted">No events selected. Select events from Step 1.</span>
+                    }
+                    else
+                    {
+                        <div class="w-100 mt-2">
+                            <small class="text-muted">Total: @selectedEventIds.Count events selected</small>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label">Calendar User ID:</label>
+                        <input class="form-control" type="number" @bind="calendarUserId" />
+                        <small class="text-muted">Default is your ID: @currentUserId</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex flex-wrap gap-2">
+                <button class="btn btn-success" @onclick="CreateCalendarWithEvents" 
+                        disabled="@(!selectedEventIds.Any())">
+                    Create Calendar with @selectedEventIds.Count Events
+                </button>
+                <button class="btn btn-primary" @onclick="LoadAllCalendars">Load All Calendars</button>
+                <button class="btn btn-warning" @onclick="UpdateFirstCalendar">Update First Calendar</button>
+                <button class="btn btn-outline-danger" @onclick="ClearSelections">Clear Selections</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Display -->
+    <div class="card">
+        <div class="card-header">
+            <h5>Calendar Results</h5>
+        </div>
+        <div class="card-body">
+            <div class="alert @alertClass">
+                @statusMessage
+            </div>
+
+            <button class="btn btn-secondary btn-sm mb-3" @onclick="LoadAllCalendars">
+                Refresh Calendars
+            </button>
+
+            @if (calendars != null && calendars.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Calendar ID</th>
+                                <th>User ID</th>
+                                <th>Event IDs</th>
+                                <th>Event Details</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var calendar in calendars.OrderBy(c => c.Id))
+                            {
+                                <tr>
+                                    <td>@calendar.Id</td>
+                                    <td>@calendar.UserId</td>
+                                    <td>
+                                        @if (calendar.EventIds != null && calendar.EventIds.Any())
+                                        {
+                                            @string.Join(", ", calendar.EventIds)
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">No events</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (calendar.EventIds != null && calendar.EventIds.Any())
+                                        {
+                                            <ul class="list-unstyled mb-0">
+                                                @foreach (var eventId in calendar.EventIds.Take(3))
+                                                {
+                                                    var ev = availableEvents?.FirstOrDefault(e => e.Id == eventId);
+                                                    <li><small>@(ev?.Name ?? $"Event {eventId}")</small></li>
+                                                }
+                                                @if (calendar.EventIds.Count > 3)
+                                                {
+                                                    <li><small>+ @(calendar.EventIds.Count - 3) more</small></li>
+                                                }
+                                            </ul>
+                                        }
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-danger me-1" 
+                                                @onclick="() => DeleteCalendar(calendar.Id)">
+                                            Delete
+                                        </button>
+                                        <button class="btn btn-sm btn-info" 
+                                                @onclick="() => TestGetSingle(calendar.Id)">
+                                            Test Get
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Database Status -->
+                <div class="mt-4 p-3 border rounded bg-light">
+                    <h6>Database Check:</h6>
+                    <p>
+                        Total Calendars: <strong>@calendars.Count</strong> |
+                        Total Events in Calendars: <strong>@calendars.Sum(c => c.EventIds?.Count ?? 0)</strong> |
+                        Your Calendars: <strong>@calendars.Count(c => c.UserId == currentUserId)</strong>
+                    </p>
+                    <small class="text-muted">
+                        Check your database: <code>calendar_events</code> table should have entries linking calendars to events.
+                    </small>
+                </div>
+            }
+            else if (calendars != null)
+            {
+                <div class="alert alert-warning">
+                    No calendars found. Create one first.
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    private List<CalendarDto>? calendars;
+    private List<EventDto>? availableEvents;
+    private List<int> selectedEventIds = new List<int>();
+    private string statusMessage = "";
+    private string alertClass = "alert-info";
+    private bool isAuthenticated = false;
+    private int currentUserId = 0;
+    private int calendarUserId = 0;
+    private bool showAllEventsToggle = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CheckAuthentication();
+        if (isAuthenticated)
+        {
+            calendarUserId = currentUserId;
+            await LoadMyEvents();
+            await LoadAllCalendars();
+        }
+    }
+
+    private async Task CheckAuthentication()
+    {
+        try
+        {
+            var isLoggedIn = await Storage.GetItem("isLoggedIn");
+            var storedUserId = await Storage.GetItem("userId");
+        
+            if (isLoggedIn == "true" && !string.IsNullOrEmpty(storedUserId))
+            {
+                isAuthenticated = true;
+                currentUserId = int.Parse(storedUserId);
+            }
+            else
+            {
+                isAuthenticated = false;
+                SetMessage("Please login first.", "alert-warning");
+            }
+        }
+        catch (Exception ex)
+        {
+            isAuthenticated = false;
+            SetMessage($"Authentication error: {ex.Message}", "alert-danger");
+        }
+    }
+
+    private void SetMessage(string message, string alertType = "alert-info")
+    {
+        statusMessage = message;
+        alertClass = $"alert {alertType}";
+        StateHasChanged();
+    }
+
+    private async Task LoadMyEvents()
+    {
+        try
+        {
+            SetMessage("Loading your events...", "alert-info");
+            var allEvents = await EventService.GetAllAsync();
+            
+            if (allEvents != null)
+            {
+                availableEvents = showAllEventsToggle 
+                    ? allEvents.ToList()  // Show all events
+                    : allEvents.Where(e => e.CreatorId == currentUserId).ToList();  // Show only your events
+                
+                SetMessage($"Found {availableEvents.Count} events.", "alert-success");
+            }
+            else
+            {
+                availableEvents = new List<EventDto>();
+                SetMessage("No events found.", "alert-warning");
+            }
+        }
+        catch (Exception ex)
+        {
+            SetMessage($"Error loading events: {ex.Message}", "alert-danger");
+            availableEvents = new List<EventDto>();
+        }
+    }
+
+    private async Task LoadAllEvents()
+    {
+        showAllEventsToggle = true;
+        await LoadMyEvents();
+    }
+
+    private async Task LoadAllCalendars()
+    {
+        try
+        {
+            SetMessage("Loading calendars...", "alert-info");
+            calendars = await CalendarService.GetAllAsync();
+            
+            if (calendars != null)
+            {
+                SetMessage($"Successfully loaded {calendars.Count} calendars.", "alert-success");
+                
+                // Debug: Check if events exist in the junction table
+                foreach (var calendar in calendars)
+                {
+                    if (calendar.EventIds != null && calendar.EventIds.Any())
+                    {
+                        Console.WriteLine($"Calendar {calendar.Id} has {calendar.EventIds.Count} events: {string.Join(",", calendar.EventIds)}");
+                    }
+                }
+            }
+            else
+            {
+                SetMessage("No calendars returned.", "alert-warning");
+                calendars = new List<CalendarDto>();
+            }
+        }
+        catch (Exception ex)
+        {
+            SetMessage($"Error loading calendars: {ex.Message}", "alert-danger");
+            calendars = new List<CalendarDto>();
+        }
+    }
+
+    private void AddEventToSelection(int eventId)
+    {
+        if (!selectedEventIds.Contains(eventId))
+        {
+            selectedEventIds.Add(eventId);
+            SetMessage($"Added Event {eventId} to selection.", "alert-info");
+        }
+    }
+
+    private void RemoveEventFromSelection(int eventId)
+    {
+        selectedEventIds.Remove(eventId);
+        SetMessage($"Removed Event {eventId} from selection.", "alert-info");
+    }
+
+    private async Task CreateCalendarWithEvents()
+    {
+        try
+        {
+            if (!selectedEventIds.Any())
+            {
+                SetMessage("Select at least one event first.", "alert-warning");
+                return;
+            }
+
+            if (calendarUserId <= 0)
+            {
+                SetMessage("Enter a valid User ID.", "alert-warning");
+                return;
+            }
+            
+            SetMessage($"Creating calendar for User {calendarUserId} with {selectedEventIds.Count} events...", "alert-info");
+            
+            // Verify selected events exist
+            var existingEventIds = availableEvents?.Select(e => e.Id).ToList() ?? new List<int>();
+            var invalidEvents = selectedEventIds.Where(id => !existingEventIds.Contains(id)).ToList();
+            
+            if (invalidEvents.Any())
+            {
+                SetMessage($"Warning: Some event IDs don't exist: {string.Join(", ", invalidEvents)}", "alert-warning");
+                // Continue anyway - the backend will handle missing events
+            }
+            
+            var createDto = new CreateCalendarDto(
+                Id: 0, // Auto-generated
+                UserId: calendarUserId,
+                EventIds: selectedEventIds
+            );
+            
+            await CalendarService.CreateAsync(createDto);
+            SetMessage($"Calendar created successfully with {selectedEventIds.Count} events! Check database for calendar_entries.", "alert-success");
+            
+            // Refresh and clear
+            await Task.Delay(1000);
+            await LoadAllCalendars();
+            selectedEventIds.Clear();
+        }
+        catch (Exception ex)
+        {
+            SetMessage($"Error creating calendar: {ex.Message}", "alert-danger");
+        }
+    }
+
+    private async Task UpdateFirstCalendar()
+    {
+        try
+        {
+            if (calendars == null || !calendars.Any())
+            {
+                SetMessage("No calendars to update. Create one first.", "alert-warning");
+                return;
+            }
+            
+            var firstCalendar = calendars.First();
+            SetMessage($"Updating calendar ID {firstCalendar.Id}...", "alert-info");
+            
+            // Use current selections or add some test events
+            var eventIdsToUse = selectedEventIds.Any() 
+                ? selectedEventIds 
+                : new List<int> { 999, 888 }; // Test IDs
+            
+            var updateDto = new CreateCalendarDto(
+                Id: firstCalendar.Id,
+                UserId: firstCalendar.UserId,
+                EventIds: eventIdsToUse
+            );
+            
+            await CalendarService.UpdateAsync(updateDto);
+            SetMessage($"Calendar ID {firstCalendar.Id} updated!", "alert-success");
+            
+            await Task.Delay(500);
+            await LoadAllCalendars();
+        }
+        catch (Exception ex)
+        {
+            SetMessage($"Error updating calendar: {ex.Message}", "alert-danger");
+        }
+    }
+
+    private async Task DeleteCalendar(int calendarId)
+    {
+        try
+        {
+            SetMessage($"Deleting calendar ID {calendarId}...", "alert-info");
+            await CalendarService.DeleteAsync(calendarId);
+            SetMessage($"Calendar ID {calendarId} deleted!", "alert-success");
+            
+            await Task.Delay(500);
+            await LoadAllCalendars();
+        }
+        catch (Exception ex)
+        {
+            SetMessage($"Error deleting calendar: {ex.Message}", "alert-danger");
+        }
+    }
+
+    private async Task TestGetSingle(int calendarId)
+    {
+        try
+        {
+            SetMessage($"Testing GetSingle for calendar ID {calendarId}...", "alert-info");
+            await CalendarService.GetSingleAsync(calendarId);
+            SetMessage($"GetSingle for calendar ID {calendarId} successful!", "alert-success");
+        }
+        catch (Exception ex)
+        {
+            SetMessage($"Error in GetSingle: {ex.Message}", "alert-danger");
+        }
+    }
+
+    private void ClearSelections()
+    {
+        selectedEventIds.Clear();
+        SetMessage("Selections cleared.", "alert-info");
+    }
+}

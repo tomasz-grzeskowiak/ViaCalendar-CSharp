@@ -6,5 +6,6 @@ public enum HandlerType
     HandlerEvent = 1,
     HandlerUser = 2,
     HandlerGroup = 3,
+    HandlerCalendar = 4,
     
 }

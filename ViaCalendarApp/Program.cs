@@ -34,6 +34,13 @@ var groupHttpClientBuilder = builder.Services.AddHttpClient<GroupServiceClient>(
     client.Timeout = TimeSpan.FromSeconds(10);
 });
 
+// Register CalendarServiceClient
+var calendarHttpClientBuilder = builder.Services.AddHttpClient<CalendarServiceClient>(client =>
+{
+    client.BaseAddress = new Uri("https://localhost:7259"); // Same base address or adjust as needed
+    client.Timeout = TimeSpan.FromSeconds(10);
+});
+
 if (builder.Environment.IsDevelopment())
 {
     eventHttpClientBuilder.ConfigurePrimaryHttpMessageHandler(() =>
@@ -51,6 +58,13 @@ if (builder.Environment.IsDevelopment())
         });
     
     groupHttpClientBuilder.ConfigurePrimaryHttpMessageHandler(() =>
+        new HttpClientHandler
+        {
+            ServerCertificateCustomValidationCallback =
+                HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+        });
+    
+    calendarHttpClientBuilder.ConfigurePrimaryHttpMessageHandler(() =>
         new HttpClientHandler
         {
             ServerCertificateCustomValidationCallback =
