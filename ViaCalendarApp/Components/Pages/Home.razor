@@ -1,7 +1,51 @@
 ﻿@page "/"
+@using ViaCalendarApp.Services
+@rendermode InteractiveServer
+@inject EventServiceClient EventService
 
-<PageTitle>Home</PageTitle>
+<SfSchedule TValue="Event" SelectedDate="@CurrentDate" Height="650px" @bind-CurrentView="@CurrentView">
+    <ScheduleEventSettings DataSource="DataSource" ></ScheduleEventSettings>
+    <ScheduleViews>
+        <ScheduleView Option="View.Day"></ScheduleView>
+        <ScheduleView Option="View.Week"></ScheduleView>
+        <ScheduleView Option="View.Month"></ScheduleView>
+        <ScheduleView Option="View.Year"></ScheduleView>
+    </ScheduleViews>
+</SfSchedule>
 
-<h1>Hello, world!</h1>
+@code{
+    View CurrentView = View.Week;
+    DateTime CurrentDate = DateTime.Now;
+    List<ScheduleEvent> DataSource = new();
+    
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var events = await EventService.GetEventsAsync();
+            DataSource = events
+                .Where(e => e.Start != default && e.End != default) // filter invalid
+                .Select(e => new ScheduleEvent
+                {
+                    Id = e.Id,
+                    Subject = e.Name,
+                    StartTime = e.Start,
+                    EndTime = e.End
+                }).ToList();
+            
+            Console.WriteLine($"Loaded {DataSource.Count} events"); // debug
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading events: {ex.Message}");
+        }
+    }
 
-Welcome to your new app.
+    public class ScheduleEvent
+    {
+        public int Id { get; set; }
+        public string? Subject { get; set; }
+        public DateTime StartTime { get; set; }
+        public DateTime EndTime { get; set; }
+    }
+}

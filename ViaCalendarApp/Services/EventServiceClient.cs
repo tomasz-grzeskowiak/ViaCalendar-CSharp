@@ -27,11 +27,12 @@ public class EventServiceClient
     }
 
     // Update an event
-    public async Task UpdateAsync(CreateEventDto eventDto)
+    public async Task UpdateAsync(int id, CreateEventDto dto)
     {
-        var response = await _http.PutAsJsonAsync("event", eventDto);
-        response.EnsureSuccessStatusCode();
+        // Use id in the URL, e.g., PUT /event/{id}
+        await _http.PutAsJsonAsync($"event/{id}", dto);
     }
+
     public async Task DeleteAsync(int id)
     {
         var request = new HttpRequestMessage(HttpMethod.Delete, $"event/{id}");
@@ -43,5 +44,11 @@ public class EventServiceClient
         var request = new HttpRequestMessage(HttpMethod.Get, $"event/{id}");
         var response = await _http.SendAsync(request);
         response.EnsureSuccessStatusCode();
+    }
+    
+    public async Task<List<EventDto>> GetEventsAsync()
+    {
+        var response = await _http.GetFromJsonAsync<List<EventDto>>("api/events");
+        return response ?? new List<EventDto>();
     }
 }

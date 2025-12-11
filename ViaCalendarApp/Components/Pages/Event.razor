@@ -40,11 +40,8 @@ else
                         <br/>
                         <small class="text-muted">
                             Creator: @(ev.CreatorId == currentUserId ? "You" : $"User {ev.CreatorId}") |
-                            Type: @(ev.TypeOfRecursive ?? "None")
-                            @if (ev.Duration.HasValue)
-                            {
-                                <span> | Duration: @ev.Duration.Value.ToString("g")</span>
-                            }
+                            Type: @(ev.TypeOfRecursive ?? "None") |
+                            Start: @ev.Start.ToString("g") | End: @ev.End.ToString("g")
                         </small>
                     </div>
                     <span>
@@ -63,6 +60,7 @@ else
         </ul>
     }
 
+    <!-- Update form fields for Start and End -->
     <h4>@(editingEvent is null ? "Create New Event" : "Edit Event")</h4>
 
     <div class="card">
@@ -71,40 +69,27 @@ else
                 <label class="form-label">Event Name *</label>
                 <input class="form-control" @bind="formEventName" />
             </div>
-            
+
             <div class="mb-3">
                 <label class="form-label">Tag *</label>
                 <input class="form-control" @bind="formEventTag" placeholder="e.g., Work, Personal, Meeting" />
             </div>
-            
+
             <div class="mb-3 form-check">
                 <input type="checkbox" class="form-check-input" @bind="formEventRecursive" />
                 <label class="form-check-label">Recursive Event</label>
             </div>
-            
-            <!-- Duration with separate date and time inputs -->
+
             <div class="mb-3">
-                <label class="form-label">Duration *</label>
-                <div class="row g-2">
-                    <div class="col">
-                        <input class="form-control" type="date" 
-                               value="@FormattedDate" 
-                               @onchange="@((ChangeEventArgs e) => OnDateChanged(e))"
-                               required />
-                    </div>
-                    <div class="col">
-                        <input class="form-control" type="time" 
-                               value="@FormattedTime" 
-                               @onchange="@((ChangeEventArgs e) => OnTimeChanged(e))"
-                               required />
-                    </div>
-                </div>
-                @if (!IsDurationValid)
-                {
-                    <small class="text-danger">Duration is required</small>
-                }
+                <label class="form-label">Start *</label>
+                <input class="form-control" type="datetime-local" @bind="formEventStart" required />
             </div>
-            
+
+            <div class="mb-3">
+                <label class="form-label">End *</label>
+                <input class="form-control" type="datetime-local" @bind="formEventEnd" required />
+            </div>
+
             <div class="mb-3">
                 <label class="form-label">Recurrence Type</label>
                 <select class="form-select" @bind="formEventTypeOfRecursive" disabled="@(!formEventRecursive)">
@@ -113,12 +98,8 @@ else
                     <option value="Month">Monthly</option>
                     <option value="Year">Yearly</option>
                 </select>
-                @if (!formEventRecursive)
-                {
-                    <small class="text-muted">Enable "Recursive Event" to select recurrence type</small>
-                }
             </div>
-            
+
             <div class="d-flex gap-2">
                 <button class="btn btn-success" @onclick="SaveEvent">
                     @(editingEvent is null ? "Create Event" : "Update Event")
@@ -145,14 +126,8 @@ else
     private bool formEventRecursive = false;
     private string formEventTag = "";
     private string formEventTypeOfRecursive = "";
-    
-    // For Duration - use DateTime? but will validate it's not null
-    private DateTime? formEventDuration = DateTime.Now; // Default to now
-    
-    // Helper properties for formatted date/time strings
-    private string FormattedDate => formEventDuration?.ToString("yyyy-MM-dd") ?? "";
-    private string FormattedTime => formEventDuration?.ToString("HH:mm") ?? "";
-    private bool IsDurationValid => formEventDuration.HasValue;
+    private DateTime formEventStart = DateTime.Now;
+    private DateTime formEventEnd = DateTime.Now.AddHours(1);
 
     protected override async Task OnInitializedAsync()
     {
@@ -170,13 +145,12 @@ else
             var isLoggedIn = await Storage.GetItem("isLoggedIn");
             var storedUserId = await Storage.GetItem("userId");
             var storedUserName = await Storage.GetItem("userName");
-        
+
             if (isLoggedIn == "true" && !string.IsNullOrEmpty(storedUserId))
             {
                 isAuthenticated = true;
                 currentUserId = int.Parse(storedUserId);
                 currentUserName = storedUserName ?? $"User {storedUserId}";
-                statusMessage = "";
             }
             else
             {
@@ -195,34 +169,13 @@ else
     {
         try
         {
-            // Get all events
             var allEvents = await EventService.GetAllAsync();
-        
-            Console.WriteLine($"=== DEBUG LOAD EVENTS ===");
-            Console.WriteLine($"Current User ID: {currentUserId}");
-        
-            if (allEvents != null)
-            {
-                Console.WriteLine($"Total events from API: {allEvents.Count}");
-            
-                // Filter events
-                events = allEvents
-                    .Where(e => e.CreatorId == currentUserId)
-                    .ToList();
-                
-                Console.WriteLine($"Filtered to: {events.Count} events");
-            }
-            else
-            {
-                events = new List<EventDto>();
-            }
-        
-            statusMessage = $"Loaded {events.Count} of your events (filtered from {allEvents?.Count ?? 0} total).";
+            events = allEvents?.Where(e => e.CreatorId == currentUserId).ToList() ?? new List<EventDto>();
+            statusMessage = $"Loaded {events.Count} of your events.";
         }
         catch (Exception ex)
         {
             statusMessage = $"Error loading events: {ex.Message}";
-            Console.WriteLine($"ERROR: {ex.Message}");
             events = new List<EventDto>();
         }
     }
@@ -234,62 +187,20 @@ else
         formEventName = ev.Name;
         formEventTag = ev.Tag;
         formEventRecursive = ev.Recursive;
-        formEventDuration = ev.Duration ?? DateTime.Now; // Default to now if null
-        
-        // If not recursive, set TypeOfRecursive to empty
-        // If recursive but TypeOfRecursive is null, set to empty
+        formEventStart = ev.Start;
+        formEventEnd = ev.End;
         formEventTypeOfRecursive = ev.Recursive ? (ev.TypeOfRecursive ?? "") : "";
     }
 
     private void CancelEdit()
     {
         editingEvent = null;
-        eventId = 0;    
         formEventName = "";
         formEventTag = "";
         formEventRecursive = false;
-        formEventDuration = DateTime.Now; // Reset to default
+        formEventStart = DateTime.Now;
+        formEventEnd = DateTime.Now.AddHours(1);
         formEventTypeOfRecursive = "";
-    }
-
-    private void OnDateChanged(ChangeEventArgs e)
-    {
-        var dateString = e.Value?.ToString();
-        if (!string.IsNullOrEmpty(dateString))
-        {
-            if (DateTime.TryParse(dateString, out DateTime dateOnly))
-            {
-                // Keep existing time or use current time
-                var existingTime = formEventDuration?.TimeOfDay ?? DateTime.Now.TimeOfDay;
-                formEventDuration = dateOnly.Date + existingTime;
-            }
-        }
-        else
-        {
-            // If date is cleared, use today
-            var existingTime = formEventDuration?.TimeOfDay ?? DateTime.Now.TimeOfDay;
-            formEventDuration = DateTime.Today + existingTime;
-        }
-    }
-
-    private void OnTimeChanged(ChangeEventArgs e)
-    {
-        var timeString = e.Value?.ToString();
-        if (!string.IsNullOrEmpty(timeString))
-        {
-            if (TimeSpan.TryParse(timeString, out TimeSpan timeOnly))
-            {
-                // Keep existing date or use today
-                var existingDate = formEventDuration?.Date ?? DateTime.Today;
-                formEventDuration = existingDate + timeOnly;
-            }
-        }
-        else
-        {
-            // If time is cleared, use current time
-            var existingDate = formEventDuration?.Date ?? DateTime.Today;
-            formEventDuration = existingDate + DateTime.Now.TimeOfDay;
-        }
     }
 
     private async Task SaveEvent()
@@ -299,56 +210,25 @@ else
             statusMessage = "Event Name and Tag are required.";
             return;
         }
-        
-        // Validate Duration is not null
-        if (!formEventDuration.HasValue)
-        {
-            statusMessage = "Duration is required.";
-            return;
-        }
 
         try
         {
-            // If not recursive, set TypeOfRecursive to empty string
-            var typeOfRecursive = formEventRecursive ? formEventTypeOfRecursive : "None";
-            
             var createDto = new CreateEventDto(
-                editingEvent?.Id ?? 0,  // Use existing ID for edit, 0 for create
-                Name: formEventName,
-                Tag: formEventTag,
-                Recursive: formEventRecursive,
-                CreatorId: currentUserId,
-                Duration: formEventDuration.Value,  // Use .Value since we validated it's not null
-                TypeOfRecursive: typeOfRecursive
+                formEventName,
+                formEventTag,
+                formEventRecursive,
+                currentUserId,
+                formEventStart,
+                formEventEnd,
+                formEventRecursive ? formEventTypeOfRecursive : "None"
             );
 
             if (editingEvent == null)
-            {
-                // Create new event
                 await EventService.CreateAsync(createDto);
-                statusMessage = $"Event '{formEventName}' created successfully.";
-            }
             else
-            {
-                // Update existing event - assuming you have an UpdateAsync method
-                // If not, you might need to create one
-                try
-                {
-                    // Try to call UpdateAsync if it exists
-                    await EventService.UpdateAsync(createDto); // This might need to be adjusted
-                    statusMessage = $"Event '{formEventName}' updated successfully.";
-                }
-                catch (Exception ex)
-                {
-                    // If UpdateAsync doesn't exist, try delete and recreate
-                    Console.WriteLine($"Update failed, trying delete/recreate: {ex.Message}");
-                    
-                    await EventService.DeleteAsync(eventId);
-                    await EventService.CreateAsync(createDto);
-                    statusMessage = $"Event '{formEventName}' updated successfully (via delete/recreate).";
-                }
-            }
+                await EventService.UpdateAsync(editingEvent.Id, createDto);
 
+            statusMessage = $"Event '{formEventName}' saved successfully.";
             await LoadEvents();
             CancelEdit();
         }
@@ -358,12 +238,13 @@ else
         }
     }
 
+
     private async Task DeleteEvent(int id)
     {
         try
         {
             await EventService.DeleteAsync(id);
-            statusMessage = $"Event deleted successfully.";
+            statusMessage = "Event deleted successfully.";
             await LoadEvents();
         }
         catch (Exception ex)

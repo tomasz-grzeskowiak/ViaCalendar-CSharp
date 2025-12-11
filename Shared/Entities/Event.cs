@@ -8,7 +8,8 @@ public class Event
     public string Tag { get; private set; }
     public bool Recursive { get; private set; }
     public int CreatorId { get; private set; }
-    public DateTime? Duration { get; private set; }  // Added Duration (nullable)
+    public DateTime Start { get; private set; }
+    public DateTime End { get; private set; }
     public string TypeOfRecursive { get; private set; }  // Added TypeOfRecursive
     
     public int Id { get; set; } = 0;
@@ -21,7 +22,8 @@ public class Event
         private string _tag = "Default Tag";
         private bool _recursive;
         private int _creatorId = 0;
-        private DateTime? _duration = null;  // Added Duration
+        private DateTime _start = DateTime.MinValue;
+        private DateTime _end = DateTime.MinValue;
         private string _typeOfRecursive = "";  // Added TypeOfRecursive
 
         public Builder SetName(string name)
@@ -62,9 +64,15 @@ public class Event
             return this;
         }
 
-        public Builder SetDuration(DateTime? duration)  // Added SetDuration
+        public Builder SetStart(DateTime start)
         {
-            _duration = duration;
+            _start = start;
+            return this;
+        }
+
+        public Builder SetEnd(DateTime end)
+        {
+            _end = end;
             return this;
         }
 
@@ -83,7 +91,8 @@ public class Event
                 Tag = _tag,
                 Recursive = _recursive,
                 CreatorId = _creatorId,
-                Duration = _duration,  // Set Duration
+                Start = _start,
+                End = _end,
                 TypeOfRecursive = _typeOfRecursive  // Set TypeOfRecursive
             };
         }

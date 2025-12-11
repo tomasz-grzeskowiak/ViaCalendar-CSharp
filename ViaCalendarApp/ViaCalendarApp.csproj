@@ -10,4 +10,9 @@
       <ProjectReference Include="..\Shared\APIContracts\APIContracts.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <PackageReference Include="Syncfusion.Blazor.Schedule" Version="31.2.18" />
+      <PackageReference Include="Syncfusion.Blazor.Themes" Version="31.2.18" />
+    </ItemGroup>
+
 </Project>

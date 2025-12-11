@@ -43,8 +43,9 @@ message EventProto {
   string tag = 3;
   bool recursive = 4;
   int32 creatorId = 5;
-  google.protobuf.Timestamp duration = 6;
-  TypeOfRecursiveProto typeOfRecursive = 7;
+  google.protobuf.Timestamp start = 6;
+  google.protobuf.Timestamp end = 7;
+  TypeOfRecursiveProto typeOfRecursive = 8;
 }
 
 message UserProto {

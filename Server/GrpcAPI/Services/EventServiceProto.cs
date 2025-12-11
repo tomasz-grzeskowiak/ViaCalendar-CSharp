@@ -22,13 +22,9 @@ public class EventServiceProto : IEventRepository
             Recursive = payload.Recursive,
             Tag = payload.Tag,
             CreatorId = payload.CreatorId,
+            Start = Timestamp.FromDateTime(payload.Start.ToUniversalTime()),
+            End = Timestamp.FromDateTime(payload.End.ToUniversalTime())
         };
-    
-        // Convert DateTime? to Timestamp for Duration
-        if (payload.Duration.HasValue)
-        {
-            proto.Duration = Timestamp.FromDateTime(payload.Duration.Value.ToUniversalTime());
-        }
     
         // Convert string to TypeOfRecursiveProto enum
         if (!string.IsNullOrEmpty(payload.TypeOfRecursive))
@@ -47,29 +43,21 @@ public class EventServiceProto : IEventRepository
         var response = await _handler.SendRequestAsync(request);
 
         var created = response.Payload.Unpack<EventProto>();
-
-        // Convert back for the returned Event
-        DateTime? duration = null;
-        if (created.Duration != null && created.Duration.Seconds > 0)
-        {
-            duration = DateTime.UnixEpoch.AddSeconds(created.Duration.Seconds);
-        }
     
-        string typeOfRecursive = created.TypeOfRecursive switch
-        {
-            TypeOfRecursiveProto.Day => "Day",
-            TypeOfRecursiveProto.Month => "Month",
-            TypeOfRecursiveProto.Year => "Year",
-            _ => ""
-        };
-
         return new Event.Builder()
             .SetName(created.Name)
             .SetRecursive(created.Recursive)
             .SetTag(created.Tag)
             .SetCreatorId(created.CreatorId)
-            .SetDuration(duration)  // Pass DateTime? 
-            .SetTypeOfRecursive(typeOfRecursive)  // Pass string
+            .SetStart(created.Start.ToDateTime())
+            .SetEnd(created.End.ToDateTime())
+            .SetTypeOfRecursive(created.TypeOfRecursive switch
+            {
+                TypeOfRecursiveProto.Day => "Day",
+                TypeOfRecursiveProto.Month => "Month",
+                TypeOfRecursiveProto.Year => "Year",
+                _ => ""
+            })
             .Build();
     }
 
@@ -82,18 +70,9 @@ public class EventServiceProto : IEventRepository
             Recursive = payload.Recursive,
             Tag = payload.Tag,
             CreatorId = payload.CreatorId,
+            Start = Timestamp.FromDateTime(payload.Start.ToUniversalTime()),
+            End = Timestamp.FromDateTime(payload.End.ToUniversalTime())
         };
-    
-        // Converts DateTime? to Timestamp for Duration
-        if (payload.Duration.HasValue)
-        {
-            proto.Duration = Timestamp.FromDateTime(payload.Duration.Value.ToUniversalTime());
-        }
-        else
-        {
-            // Set empty timestamp if null
-            proto.Duration = new Timestamp();
-        }
     
         // Convert string to TypeOfRecursiveProto enum
         if (!string.IsNullOrEmpty(payload.TypeOfRecursive))
@@ -127,30 +106,11 @@ public class EventServiceProto : IEventRepository
 
     public async Task<Event> GetSingleAsync(int id)
     {
-        var proto = new EventProto()
-        {
-            Id = id,
-        };
+        var proto = new EventProto() { Id = id };
         var fetched = MakeRequestProto(ActionTypeProto.ActionGet, proto);
         var response = await _handler.SendRequestAsync(fetched);
-        var eventProto = response.Payload.Unpack<EventProto>() 
+        var eventProto = response.Payload.Unpack<EventProto>()
                          ?? throw new InvalidDataException("Event not found");
-    
-        // Convert Timestamp to DateTime? for Duration
-        DateTime? duration = null;
-        if (eventProto.Duration != null && eventProto.Duration.Seconds > 0)
-        {
-            duration = DateTime.UnixEpoch.AddSeconds(eventProto.Duration.Seconds);
-        }
-    
-        // Convert TypeOfRecursiveProto enum to string
-        string typeOfRecursive = eventProto.TypeOfRecursive switch
-        {
-            TypeOfRecursiveProto.Day => "Day",
-            TypeOfRecursiveProto.Month => "Month",
-            TypeOfRecursiveProto.Year => "Year",
-            _ => ""
-        };
 
         return new Event.Builder()
             .SetId(eventProto.Id)
@@ -158,8 +118,15 @@ public class EventServiceProto : IEventRepository
             .SetRecursive(eventProto.Recursive)
             .SetTag(eventProto.Tag)
             .SetCreatorId(eventProto.CreatorId)
-            .SetDuration(duration)  // Pass DateTime?
-            .SetTypeOfRecursive(typeOfRecursive)  // Pass string
+            .SetStart(eventProto.Start.ToDateTime())
+            .SetEnd(eventProto.End.ToDateTime())
+            .SetTypeOfRecursive(eventProto.TypeOfRecursive switch
+            {
+                TypeOfRecursiveProto.Day => "Day",
+                TypeOfRecursiveProto.Month => "Month",
+                TypeOfRecursiveProto.Year => "Year",
+                _ => ""
+            })
             .Build();
     }
 
@@ -182,30 +149,21 @@ public class EventServiceProto : IEventRepository
         List<Event> events = new();
         foreach (EventProto eventProto in received.Events)
         {
-            // Convert Timestamp to DateTime? for Duration
-            DateTime? duration = null;
-            if (eventProto.Duration != null && eventProto.Duration.Seconds > 0)
-            {
-                duration = DateTime.UnixEpoch.AddSeconds(eventProto.Duration.Seconds);
-            }
-        
-            // Convert TypeOfRecursiveProto enum to string
-            string typeOfRecursive = eventProto.TypeOfRecursive switch
-            {
-                TypeOfRecursiveProto.Day => "Day",
-                TypeOfRecursiveProto.Month => "Month",
-                TypeOfRecursiveProto.Year => "Year",
-                _ => ""
-            };
-
             events.Add(new Event.Builder()
                 .SetId(eventProto.Id)
                 .SetName(eventProto.Name)
                 .SetRecursive(eventProto.Recursive)
                 .SetTag(eventProto.Tag)
                 .SetCreatorId(eventProto.CreatorId)
-                .SetDuration(duration)  
-                .SetTypeOfRecursive(typeOfRecursive)  
+                .SetStart(eventProto.Start.ToDateTime())
+                .SetEnd(eventProto.End.ToDateTime())
+                .SetTypeOfRecursive(eventProto.TypeOfRecursive switch
+                {
+                    TypeOfRecursiveProto.Day => "Day",
+                    TypeOfRecursiveProto.Month => "Month",
+                    TypeOfRecursiveProto.Year => "Year",
+                    _ => ""
+                })
                 .Build());
         }
         return events.AsQueryable();

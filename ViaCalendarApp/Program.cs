@@ -1,6 +1,7 @@
 using ViaCalendarApp.Components;
 using ViaCalendarApp.Services;
 using ViaCalendarApp.Helper;
+using Syncfusion.Blazor;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,6 +11,7 @@ builder.Services.AddServerSideBlazor();
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 builder.Services.AddScoped<StorageHelper>();
+builder.Services.AddSyncfusionBlazor();
 
 // Register EventServiceClient
 var eventHttpClientBuilder = builder.Services.AddHttpClient<EventServiceClient>(client =>
