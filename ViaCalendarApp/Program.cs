@@ -3,6 +3,8 @@ using ViaCalendarApp.Services;
 using ViaCalendarApp.Helper;
 using Syncfusion.Blazor;
 
+Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense("Ngo9BigBOggjGyl/Vkd+XU9FcVRDX3xKf0x/TGpQb19xflBPallYVBYiSV9jS3tSdERiWHpceXdXT2ZYWE91Xg==");
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services
