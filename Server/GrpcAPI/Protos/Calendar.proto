@@ -44,7 +44,7 @@ message EventProto {
   bool recursive = 4;
   int32 creatorId = 5;
   google.protobuf.Timestamp start = 6;
-  google.protobuf.Timestamp end = 7;
+  google.protobuf.Timestamp end_time = 7;
   TypeOfRecursiveProto typeOfRecursive = 8;
 }
 

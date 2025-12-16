@@ -1,51 +1,146 @@
 ﻿@page "/"
+@using APIContracts.DTOs.Event
 @using ViaCalendarApp.Services
-@rendermode InteractiveServer
+@using ViaCalendarApp.Helper
 @inject EventServiceClient EventService
+@inject NavigationManager Navigation
+@inject StorageHelper Storage
+@using Syncfusion.Blazor.Schedule
+@rendermode InteractiveServer
 
-<SfSchedule TValue="Event" SelectedDate="@CurrentDate" Height="650px" @bind-CurrentView="@CurrentView">
-    <ScheduleEventSettings DataSource="DataSource" ></ScheduleEventSettings>
-    <ScheduleViews>
-        <ScheduleView Option="View.Day"></ScheduleView>
-        <ScheduleView Option="View.Week"></ScheduleView>
-        <ScheduleView Option="View.Month"></ScheduleView>
-        <ScheduleView Option="View.Year"></ScheduleView>
-    </ScheduleViews>
-</SfSchedule>
+@if (!isAuthenticated)
+{
+    <div class="text-center py-5">
+        <h1>Welcome to ViaCalendar</h1>
+        <p class="lead">Please <a href="/login">login</a> to view your calendar</p>
+    </div>
+}
+else
+{
+    <div class="container-fluid">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h2>My Calendar</h2>
+                <p class="text-muted">Welcome, @currentUserName!</p>
+            </div>
+            <div>
+                <a href="/event" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-1"></i> Create Event
+                </a>
+            </div>
+        </div>
 
-@code{
+        <div class="card">
+            <div class="card-body">
+                <SfSchedule TValue="ScheduleEvent" SelectedDate="@CurrentDate" Height="650px" @bind-CurrentView="@CurrentView">
+                    <ScheduleEventSettings DataSource="DataSource"></ScheduleEventSettings>
+                    <ScheduleViews>
+                        <ScheduleView Option="View.Day"></ScheduleView>
+                        <ScheduleView Option="View.Week"></ScheduleView>
+                        <ScheduleView Option="View.Month"></ScheduleView>
+                        <ScheduleView Option="View.Agenda"></ScheduleView>
+                    </ScheduleViews>
+                </SfSchedule>
+            </div>
+        </div>
+
+        @if (DataSource.Any())
+        {
+            <div class="alert alert-info mt-3">
+                Showing <strong>@DataSource.Count</strong> events in your calendar
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-warning mt-3">
+                No events found. <a href="/event" class="alert-link">Create your first event</a>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    
+    // Syncfusion
     View CurrentView = View.Week;
     DateTime CurrentDate = DateTime.Now;
     List<ScheduleEvent> DataSource = new();
     
-    protected override async Task OnInitializedAsync()
-    {
-        try
-        {
-            var events = await EventService.GetEventsAsync();
-            DataSource = events
-                .Where(e => e.Start != default && e.End != default) // filter invalid
-                .Select(e => new ScheduleEvent
-                {
-                    Id = e.Id,
-                    Subject = e.Name,
-                    StartTime = e.Start,
-                    EndTime = e.End
-                }).ToList();
-            
-            Console.WriteLine($"Loaded {DataSource.Count} events"); // debug
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading events: {ex.Message}");
-        }
-    }
+    // Authentication
+    private bool isAuthenticated = false;
+    private int currentUserId = 0;
+    private string currentUserName = "";
 
+    // Schedule Event class
     public class ScheduleEvent
     {
         public int Id { get; set; }
         public string? Subject { get; set; }
         public DateTime StartTime { get; set; }
         public DateTime EndTime { get; set; }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CheckAuthentication();
+        if (isAuthenticated)
+        {
+            await LoadEvents();
+        }
+    }
+
+    private async Task CheckAuthentication()
+    {
+        try
+        {
+            var isLoggedIn = await Storage.GetItem("isLoggedIn");
+            var storedUserId = await Storage.GetItem("userId");
+            var storedUserName = await Storage.GetItem("userName");
+
+            if (isLoggedIn == "true" && !string.IsNullOrEmpty(storedUserId))
+            {
+                isAuthenticated = true;
+                currentUserId = int.Parse(storedUserId);
+                currentUserName = storedUserName ?? $"User {storedUserId}";
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Auth error: {ex.Message}");
+        }
+    }
+
+    private async Task LoadEvents()
+    {
+        try
+        {
+            // Get all events
+            var events = await EventService.GetAllAsync();
+            
+            if (events != null)
+            {
+                // Filter to user's events
+                var userEvents = events
+                    .Where(e => e.CreatorId == currentUserId)
+                    .ToList();
+                
+                // Convert to schedule events
+                DataSource = userEvents
+                    .Where(e => e.Start != default && e.End != default)
+                    .Select(e => new ScheduleEvent
+                    {
+                        Id = e.Id,
+                        Subject = $"{e.Name} - {e.Tag}",
+                        StartTime = e.Start,
+                        EndTime = e.End
+                    }).ToList();
+                
+                Console.WriteLine($"Loaded {DataSource.Count} events");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading events: {ex.Message}");
+        }
     }
 }

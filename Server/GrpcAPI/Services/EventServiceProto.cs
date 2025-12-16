@@ -23,7 +23,7 @@ public class EventServiceProto : IEventRepository
             Tag = payload.Tag,
             CreatorId = payload.CreatorId,
             Start = Timestamp.FromDateTime(payload.Start.ToUniversalTime()),
-            End = Timestamp.FromDateTime(payload.End.ToUniversalTime())
+            EndTime = Timestamp.FromDateTime(payload.End.ToUniversalTime())
         };
     
         // Convert string to TypeOfRecursiveProto enum
@@ -50,7 +50,7 @@ public class EventServiceProto : IEventRepository
             .SetTag(created.Tag)
             .SetCreatorId(created.CreatorId)
             .SetStart(created.Start.ToDateTime())
-            .SetEnd(created.End.ToDateTime())
+            .SetEnd(created.EndTime.ToDateTime())
             .SetTypeOfRecursive(created.TypeOfRecursive switch
             {
                 TypeOfRecursiveProto.Day => "Day",
@@ -71,7 +71,7 @@ public class EventServiceProto : IEventRepository
             Tag = payload.Tag,
             CreatorId = payload.CreatorId,
             Start = Timestamp.FromDateTime(payload.Start.ToUniversalTime()),
-            End = Timestamp.FromDateTime(payload.End.ToUniversalTime())
+            EndTime = Timestamp.FromDateTime(payload.End.ToUniversalTime())
         };
     
         // Convert string to TypeOfRecursiveProto enum
@@ -119,7 +119,7 @@ public class EventServiceProto : IEventRepository
             .SetTag(eventProto.Tag)
             .SetCreatorId(eventProto.CreatorId)
             .SetStart(eventProto.Start.ToDateTime())
-            .SetEnd(eventProto.End.ToDateTime())
+            .SetEnd(eventProto.EndTime.ToDateTime())
             .SetTypeOfRecursive(eventProto.TypeOfRecursive switch
             {
                 TypeOfRecursiveProto.Day => "Day",
@@ -156,7 +156,7 @@ public class EventServiceProto : IEventRepository
                 .SetTag(eventProto.Tag)
                 .SetCreatorId(eventProto.CreatorId)
                 .SetStart(eventProto.Start.ToDateTime())
-                .SetEnd(eventProto.End.ToDateTime())
+                .SetEnd(eventProto.EndTime.ToDateTime())
                 .SetTypeOfRecursive(eventProto.TypeOfRecursive switch
                 {
                     TypeOfRecursiveProto.Day => "Day",
