@@ -10,13 +10,13 @@ using Services.User;
 public class UserController : ControllerBase
 {
     private readonly IUserService _userService;
-    //Service used in constructor
+   
     public UserController(IUserService userService)
     {
         _userService = userService;
     } 
 
-    // GET /userEntity
+    // GET 
     [HttpGet]
     public async Task<ActionResult> GetCompanies()
     {
@@ -28,7 +28,7 @@ public class UserController : ControllerBase
         return Ok(usersDto);
     }
 
-    // POST /userEntity
+    // POST 
     [HttpPost]
     public async Task<ActionResult> CreateUser([FromBody] CreateUserDto dto)
     {
@@ -46,7 +46,7 @@ public class UserController : ControllerBase
         return CreatedAtAction(nameof(CreateUser), new { nameof=dto.UserName, dto.Password, dto.Email, dto.FirstName, dto.LastName }, dto);
     }
 
-    // PUT /userEntity
+    // PUT 
     [HttpPut]
     public async Task<ActionResult> UpdateUser([FromBody] CreateUserDto dto)
     {
@@ -63,7 +63,7 @@ public class UserController : ControllerBase
         await _userService.UpdateAsync(userEntity);
         return NoContent();
     }
-    // GET /user/{id}
+    // GET 
     [HttpGet("{id}")]
     public async Task<ActionResult<CreateUserDto>> GetSingleUserAsync(int id)
     {
@@ -71,7 +71,7 @@ public class UserController : ControllerBase
 
         return Ok(new CreateUserDto(_user.Id, _user.UserName, _user.Password, _user.Email, _user.FirstName, _user.LastName, _user.GroupId));
     }
-    // DELETE /user/{id}
+    // DELETE 
     [HttpDelete("{id}")]
     public async Task<ActionResult> DeleteCompanyAsync(int id)
     {

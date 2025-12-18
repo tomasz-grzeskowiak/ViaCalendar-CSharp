@@ -29,7 +29,7 @@ public class EventServiceClient
     // Update an event
     public async Task UpdateAsync(int id, CreateEventDto dto)
     {
-        // Use id in the URL, e.g., PUT /event/{id}
+        
         await _http.PutAsJsonAsync($"event/{id}", dto);
     }
 

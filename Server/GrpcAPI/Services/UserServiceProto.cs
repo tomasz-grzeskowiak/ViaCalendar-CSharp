@@ -95,7 +95,7 @@ public class UserServiceProto : IUserRepository
                 Action = ActionTypeProto.ActionList,
                 Handler = HandlerTypeProto.HandlerUser,
                 Payload = Any.Pack(new UserProto()
-                    //Must put in a payload, do not leave null otherwise there will be an exception on the Java server
+                    
                     {
                         Id = 0,
                         Username = "DEFAULT"

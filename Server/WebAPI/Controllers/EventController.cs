@@ -10,13 +10,13 @@ using Services.Event;
 public class EventController : ControllerBase
 {
     private readonly IEventService _eventService;
-    //Service used in constructor
+   
     public EventController(IEventService eventService)
     {
         _eventService = eventService;
     }
 
-    // GET /eventEntity
+    // GET 
     [HttpGet]
     public ActionResult GetCompanies()
     {
@@ -28,7 +28,7 @@ public class EventController : ControllerBase
         return Ok(eventsDto);
     }
     
-    // POST /eventEntity
+    // POST 
     [HttpPost]
     public async Task<ActionResult> CreateEvent([FromBody] CreateEventDto dto)
     {
@@ -46,7 +46,7 @@ public class EventController : ControllerBase
         return CreatedAtAction(nameof(CreateEvent), new { nameof=dto.Name, dto.Recursive, dto.Tag, dto.CreatorId, dto.Start, dto.End, dto.TypeOfRecursive }, dto);
     }
 
-    // PUT /eventEntity
+    // PUT 
     [HttpPut]
     public async Task<ActionResult> UpdateEvent([FromBody] CreateEventDto dto)
     {
@@ -63,7 +63,7 @@ public class EventController : ControllerBase
         await _eventService.UpdateAsync(eventEntity);
         return NoContent();
     }
-    // GET /event/{id}
+    // GET 
     [HttpGet("{id}")]
     public async Task<ActionResult<EventDto>> GetSingleEventAsync(int id)
     {
@@ -71,7 +71,7 @@ public class EventController : ControllerBase
 
         return Ok(new CreateEventDto(_event.Name, _event.Tag, _event.Recursive, _event.CreatorId, _event.Start, _event.End, _event.TypeOfRecursive));
     }
-    // DELETE /event/{id}
+    // DELETE 
     [HttpDelete("{id}")]
     public async Task<ActionResult> DeleteCompanyAsync(int id)
     {

@@ -15,21 +15,21 @@ public class CalendarService : ICalendarService
     }
     public async Task<Calendar> CreateAsync(Calendar payload)
     {
-        //Logic here
+        
         var request = MakeCalendarRequest(ActionType.ActionCreate, payload);
         return (Calendar)await _handler.HandleAsync(request);
     }
 
     public async Task UpdateAsync(Calendar payload)
     {
-        //Logic here
+        
         var request = MakeCalendarRequest(ActionType.ActionUpdate, payload);
         await _handler.HandleAsync(request);
     }
 
     public async Task DeleteAsync(int id)
     {
-        //Logic here
+        
         var request = MakeCalendarRequest(ActionType.ActionDelete,
             new Calendar.Builder()
                 .SetId(id)
@@ -39,7 +39,7 @@ public class CalendarService : ICalendarService
 
     public async Task<Calendar> GetSingleAsync(int id)
     {
-        //Logic here
+       
         var request = MakeCalendarRequest(ActionType.ActionGet,
             new Calendar.Builder()
                 .SetId(id)

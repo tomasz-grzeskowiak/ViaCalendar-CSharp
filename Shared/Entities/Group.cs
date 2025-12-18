@@ -5,7 +5,7 @@ public class Group
     public string Name { get; private set; }
     public int Id { get; set; } = 0;
 
-    // Builder inner class
+    // Builder class
     public class Builder
     {
         private string _name = "Default Name";

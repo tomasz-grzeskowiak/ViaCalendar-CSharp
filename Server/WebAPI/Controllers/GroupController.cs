@@ -10,13 +10,13 @@ using Services.Group;
 public class GroupController : ControllerBase
 {
     private readonly IGroupService _groupService;
-    //Service used in constructor
+    
     public GroupController(IGroupService groupService)
     {
         _groupService = groupService;
     } 
 
-    // GET /groupEntity
+    // GET 
     [HttpGet]
     public async Task<ActionResult> GetCompanies()
     {
@@ -28,7 +28,7 @@ public class GroupController : ControllerBase
         return Ok(groupsDto);
     }
 
-    // POST /groupEntity
+    // POST 
     [HttpPost]
     public async Task<ActionResult> CreateGroup([FromBody] CreateGroupDto dto)
     {
@@ -41,7 +41,7 @@ public class GroupController : ControllerBase
         return CreatedAtAction(nameof(CreateGroup), new { nameof=dto.Name }, dto);
     }
 
-    // PUT /groupEntity
+    // PUT 
     [HttpPut]
     public async Task<ActionResult> UpdateGroup([FromBody] CreateGroupDto dto)
     {
@@ -53,7 +53,7 @@ public class GroupController : ControllerBase
         await _groupService.UpdateAsync(groupEntity);
         return NoContent();
     }
-    // GET /group/{id}
+    // GET 
     [HttpGet("{id}")]
     public async Task<ActionResult<CreateGroupDto>> GetSingleGroupAsync(int id)
     {
@@ -61,7 +61,7 @@ public class GroupController : ControllerBase
 
         return Ok(new CreateGroupDto(_group.Id, _group.Name));
     }
-    // DELETE /group/{id}
+    // DELETE 
     [HttpDelete("{id}")]
     public async Task<ActionResult> DeleteCompanyAsync(int id)
     {

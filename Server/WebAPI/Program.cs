@@ -11,10 +11,10 @@ using Services.User;
 using Services.Group;
 
 var builder = WebApplication.CreateBuilder(args);
-//Add controllers to the container 
+//Add controllers 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-//add more services
+//add services
 builder.Services.AddScoped<EventServiceProto>();
 builder.Services.AddScoped<UserServiceProto>();
 builder.Services.AddScoped<GroupServiceProto>();
@@ -37,7 +37,7 @@ builder.Services.AddSingleton<CalendarMainGrpcHandler>(sp =>
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+
 if (app.Environment.IsDevelopment())
 {
 }

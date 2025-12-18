@@ -75,7 +75,7 @@ public class GroupServiceProto : IGroupRepository
                 Action = ActionTypeProto.ActionList,
                 Handler = HandlerTypeProto.HandlerGroup,
                 Payload = Any.Pack(new GroupProto()
-                    //Must put in a payload, do not leave null otherwise there will be an exception on the Java server
+                   
                     {
                         Id = 0,
                         Name = "DEFAULT"

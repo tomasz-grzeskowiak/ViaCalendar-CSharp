@@ -10,13 +10,12 @@ using Services.Calendar;
 public class CalendarController : ControllerBase
 {
     private readonly ICalendarService _calendarService;
-    //Service used in constructor
     public CalendarController(ICalendarService calendarService)
     {
         _calendarService = calendarService;
     }
 
-    // GET /calendarEntity
+    // GET 
     [HttpGet]
     public async Task<ActionResult> GetCompanies()
     {
@@ -28,7 +27,7 @@ public class CalendarController : ControllerBase
         return Ok(calendarsDto);
     }
 
-    // POST /eventEntity
+    // POST 
     [HttpPost]
     public async Task<ActionResult> CreateCalendar([FromBody] CreateCalendarDto dto)
     {
@@ -42,7 +41,7 @@ public class CalendarController : ControllerBase
         return CreatedAtAction(nameof(CreateCalendar), new { nameof=dto.UserId, dto.EventIds}, dto);
     }
 
-    // PUT /calendarEntity
+    // PUT
     [HttpPut]
     public async Task<ActionResult> UpdateCalendar([FromBody] CreateCalendarDto dto)
     {
@@ -55,7 +54,7 @@ public class CalendarController : ControllerBase
         await _calendarService.UpdateAsync(calendarEntity);
         return NoContent();
     }
-    // GET /calendar/{id}
+    // GET 
     [HttpGet("{id}")]
     public async Task<ActionResult<CreateCalendarDto>> GetSingleCalendarAsync(int id)
     {
@@ -63,7 +62,7 @@ public class CalendarController : ControllerBase
 
         return Ok(new CreateCalendarDto(_calendar.Id, _calendar.UserId, _calendar.EventIds));
     }
-    // DELETE /event/{id}
+    // DELETE 
     [HttpDelete("{id}")]
     public async Task<ActionResult> DeleteCompanyAsync(int id)
     {

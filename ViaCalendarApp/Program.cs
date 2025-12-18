@@ -7,7 +7,7 @@ Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense("Ngo9BigBOggjGyl/
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services
+// services
 builder.Services.AddRazorPages();             
 builder.Services.AddServerSideBlazor();       
 builder.Services.AddRazorComponents()
@@ -15,31 +15,31 @@ builder.Services.AddRazorComponents()
 builder.Services.AddScoped<StorageHelper>();
 builder.Services.AddSyncfusionBlazor();
 
-// Register EventServiceClient
+//EventServiceClient
 var eventHttpClientBuilder = builder.Services.AddHttpClient<EventServiceClient>(client =>
 {
     client.BaseAddress = new Uri("https://localhost:7259");
     client.Timeout = TimeSpan.FromSeconds(10);
 });
 
-// Register UserServiceClient
+//UserServiceClient
 var userHttpClientBuilder = builder.Services.AddHttpClient<UserServiceClient>(client =>
 {
-    client.BaseAddress = new Uri("https://localhost:7259"); // Same base address or adjust as needed
+    client.BaseAddress = new Uri("https://localhost:7259"); 
     client.Timeout = TimeSpan.FromSeconds(10);
 });
 
-// Register GroupServiceClient
+//GroupServiceClient
 var groupHttpClientBuilder = builder.Services.AddHttpClient<GroupServiceClient>(client =>
 {
-    client.BaseAddress = new Uri("https://localhost:7259"); // Same base address or adjust as needed
+    client.BaseAddress = new Uri("https://localhost:7259"); 
     client.Timeout = TimeSpan.FromSeconds(10);
 });
 
-// Register CalendarServiceClient
+//CalendarServiceClient
 var calendarHttpClientBuilder = builder.Services.AddHttpClient<CalendarServiceClient>(client =>
 {
-    client.BaseAddress = new Uri("https://localhost:7259"); // Same base address or adjust as needed
+    client.BaseAddress = new Uri("https://localhost:7259"); 
     client.Timeout = TimeSpan.FromSeconds(10);
 });
 
@@ -84,7 +84,7 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles(); // Add this if you have static files
+app.UseStaticFiles(); 
 app.UseAntiforgery();
 
 app.MapStaticAssets();

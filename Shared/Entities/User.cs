@@ -9,9 +9,9 @@ public class User
     public string FirstName { get; private set; }
     
     public int Id { get; set; } = 0;
-    public int GroupId { get; private set; } = 0; // Added GroupId
+    public int GroupId { get; private set; } = 0; 
 
-    // Builder inner class
+    // Builder class
     public class Builder
     {
         private string _username = "Default Name";
@@ -88,7 +88,7 @@ public class User
                 FirstName = _firstName,
                 LastName = _lastName,
                 Id = _id,
-                GroupId = _groupId // Set GroupId
+                GroupId = _groupId 
             };
         }
     }

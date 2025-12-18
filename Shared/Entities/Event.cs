@@ -10,11 +10,11 @@ public class Event
     public int CreatorId { get; private set; }
     public DateTime Start { get; private set; }
     public DateTime End { get; private set; }
-    public string TypeOfRecursive { get; private set; }  // Added TypeOfRecursive
+    public string TypeOfRecursive { get; private set; }  
     
     public int Id { get; set; } = 0;
 
-    // Builder inner class
+    // Builder class
     public class Builder
     {
         private string _name = "Default Name";
@@ -24,7 +24,7 @@ public class Event
         private int _creatorId = 0;
         private DateTime _start = DateTime.MinValue;
         private DateTime _end = DateTime.MinValue;
-        private string _typeOfRecursive = "";  // Added TypeOfRecursive
+        private string _typeOfRecursive = "";  
 
         public Builder SetName(string name)
         {
@@ -76,7 +76,7 @@ public class Event
             return this;
         }
 
-        public Builder SetTypeOfRecursive(string typeOfRecursive)  // Added SetTypeOfRecursive
+        public Builder SetTypeOfRecursive(string typeOfRecursive)  
         {
             _typeOfRecursive = typeOfRecursive ?? "";
             return this;
@@ -93,7 +93,7 @@ public class Event
                 CreatorId = _creatorId,
                 Start = _start,
                 End = _end,
-                TypeOfRecursive = _typeOfRecursive  // Set TypeOfRecursive
+                TypeOfRecursive = _typeOfRecursive  
             };
         }
     }
